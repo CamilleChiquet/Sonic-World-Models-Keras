@@ -4,10 +4,13 @@
 
 - LSTM
 - Controller + NEAT
-- Controller + apprentissage tutoré
 
 ## DONE
 
 - génération de données pour VAE
 - VAE
 - génération de données pour LSTM
+
+## TO TRY
+
+- Controller + apprentissage tutoré
