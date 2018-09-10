@@ -1,11 +1,11 @@
 # Sonic World-Models avec Keras
 
-## FAIT
+## A FAIRE
 
 - LSTM
 - Controller + NEAT
 
-## A FAIRE
+## FAIT
 
 - génération de données pour VAE
 - VAE
@@ -24,3 +24,8 @@
 - matplotlib
 - pyglet
 - pillow
+
+## Liens utiles
+
+- [World Models](https://worldmodels.github.io/)
+- [Résultats de concours sur Sonic](https://blog.openai.com/first-retro-contest-retrospective/)
