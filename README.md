@@ -14,3 +14,13 @@
 ## A ESSAYER
 
 - Controller + apprentissage tutoré
+
+## Dépendances
+
+- tensorflow
+- keras
+- gym-retro
+- numpy
+- matplotlib
+- pyglet
+- pillow
