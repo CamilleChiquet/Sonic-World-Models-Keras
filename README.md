@@ -1,16 +1,16 @@
-# Sonic World-Models with Keras
+# Sonic World-Models avec Keras
 
-## TODO
+## FAIT
 
 - LSTM
 - Controller + NEAT
 
-## DONE
+## A FAIRE
 
 - génération de données pour VAE
 - VAE
 - génération de données pour LSTM
 
-## TO TRY
+## A ESSAYER
 
 - Controller + apprentissage tutoré
