@@ -181,11 +181,14 @@ def generate_latent_images(images_path, name):
 	images = np.load(images_path + name)
 	images = images / 255
 
+	# On a 3 sorties [z_mean, z_log_var, z]
 	latent_images = model.predict(images)
+	# Seul z nous intéresse
+	latent_images = latent_images[2]
 	print(np.shape(latent_images))
 
 	np.save('data/latent_images/' + name, latent_images)
 
 
-generateData(extension_name='.LSTM_train', frame_jump=1)
-# generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_test.npy')
+# generateData(extension_name='.LSTM_train', frame_jump=1)
+generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_train2.npy')
