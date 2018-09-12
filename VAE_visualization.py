@@ -4,6 +4,7 @@ from models.VAE import *
 from process import *
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from constants import *
 
 
 def generate_render(data_path, model_path, save_path=None):
@@ -15,11 +16,10 @@ def generate_render(data_path, model_path, save_path=None):
 	:param save_path: Si définit on sauvegarde les images sorties du VAE
 	:return:
 	'''
-	input_shape = (224, 320, 3)
 	images = np.load(data_path)
 	images = images / 255
 
-	model = getVAEModel(input_shape=input_shape)
+	model = getVAEModel(input_shape=IMG_SHAPE)
 	model.load_weights(model_path)
 	# model.summary()
 	# model = model.layers[2]
@@ -28,8 +28,8 @@ def generate_render(data_path, model_path, save_path=None):
 	for image in images:
 		img = np.reshape(image, (1, 224, 320, 3))
 		img = model.predict(img)
-		# img = model.predict(np.random.rand(1,128))
-		img = img.reshape(input_shape)
+		# img = model.predict(np.random.rand(1,LATENT_DIM))
+		img = img.reshape(IMG_SHAPE)
 		if(save_path != None):
 			generated_images.append(img)
 		plt.clf()

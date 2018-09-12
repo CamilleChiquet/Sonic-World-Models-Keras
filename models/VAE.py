@@ -3,6 +3,7 @@ from keras.layers import Dense, Input, Conv2D, Flatten, Lambda, Reshape, Conv2DT
 from keras.models import Model
 from keras.losses import binary_crossentropy
 from keras import backend as K
+from constants import *
 
 
 def sampling(args):
@@ -20,10 +21,9 @@ def sampling(args):
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
-def getVAEModel(input_shape):
-	latent_dim = 128
+def getVAEModel():
 
-	inputs = Input(shape=input_shape, name='encoder_input')
+	inputs = Input(shape=IMG_SHAPE, name='encoder_input')
 	# dimension de l'image en entrée : (224, 320, 3)
 	x = Conv2D(filters=32, kernel_size=4, strides=2, kernel_initializer='normal', padding='same', activation='relu')(inputs)
 	# x = Dropout(0.25)(x)
@@ -53,19 +53,19 @@ def getVAEModel(input_shape):
 	x = Dense(1024, activation='relu')(x)
 	# x = Dropout(0.5)(x)
 	x = BN()(x)
-	z_mean = Dense(latent_dim, name='z_mean')(x)
-	z_log_var = Dense(latent_dim, name='z_log_var')(x)
+	z_mean = Dense(LATENT_DIM, name='z_mean')(x)
+	z_log_var = Dense(LATENT_DIM, name='z_log_var')(x)
 
 	# use reparameterization trick to push the sampling out as input
 	# note that "output_shape" isn't necessary with the TensorFlow backend
-	z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
+	z = Lambda(sampling, output_shape=(LATENT_DIM,), name='z')([z_mean, z_log_var])
 
 	# instantiate encoder model
 	encoder = Model(inputs, [z_mean, z_log_var, z], name='encoder')
 	# encoder.summary()
 
 	# build decoder model
-	latent_inputs = Input(shape=(latent_dim,), name='z_sampling')
+	latent_inputs = Input(shape=(LATENT_DIM,), name='z_sampling')
 	x = Dense(shape[1] * shape[2] * shape[3], activation='relu')(latent_inputs)
 	# x = Dropout(0.25)(x)
 	x = BN()(x)
@@ -96,7 +96,7 @@ def getVAEModel(input_shape):
 	vae = Model(inputs, outputs, name='vae')
 
 	# Une fonction de coût classique qui permet de déterminer l'erreur entre l'image reconstituée et celle attendue
-	reconstruction_loss = input_shape[0] * input_shape[1] * input_shape[2] * binary_crossentropy(K.flatten(inputs), K.flatten(outputs))
+	reconstruction_loss = IMG_SHAPE[0] * IMG_SHAPE[1] * IMG_SHAPE[2] * binary_crossentropy(K.flatten(inputs), K.flatten(outputs))
 
 	# Fonction de coût personnalisée, utilisée pour les VAE
 	kl_loss = -0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)

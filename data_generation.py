@@ -171,9 +171,8 @@ def generate_latent_images(images_path, name):
 	:param name: nom du tableau d'images
 	:return:
 	'''
-	input_shape = (224, 320, 3)
 	# Charger le modèle que l'on souhaite
-	model = getVAEModel(input_shape=input_shape)
+	model = getVAEModel(input_shape=IMG_SHAPE)
 	# Charger les poids de la partie encoder réseau entraîné
 	model.load_weights('saved_models/VAE.h5')
 	model = model.layers[1]
