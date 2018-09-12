@@ -191,4 +191,4 @@ def generate_latent_images(images_path, name):
 
 
 # generateData(extension_name='.LSTM_train', frame_jump=1)
-generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_train2.npy')
+generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_train.npy')
