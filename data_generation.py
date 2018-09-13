@@ -42,11 +42,11 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 	'''
 	jump = frame_jump
 	# Chargement du jeu et niveau
-	env = retro.make(game=game, state=state, use_restricted_actions=retro.Actions.ALL, scenario=scenario)
+	env = retro.make(game=game, state=state, use_restricted_actions=retro.ACTIONS_ALL, scenario=scenario)
 	obs = env.reset()
 
 
-	win_width = 1200
+	win_width = 900
 	screen_height, screen_width = obs.shape[:2]
 	win_height = win_width * screen_height // screen_width
 	win = pyglet.window.Window(width=win_width, height=win_height, vsync=False)
@@ -127,7 +127,7 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 			'MODE': keycodes.TAB in keys_pressed or ButtonCodes.SELECT in buttons_pressed,
 			'START': keycodes.ENTER in keys_pressed or ButtonCodes.START in buttons_pressed,
 		}
-		action = [inputs[b] for b in env.buttons]
+		action = [inputs[b] for b in env.BUTTONS]
 
 		obs, rew, done, info = env.step(action)
 		jump -= 1
@@ -172,7 +172,7 @@ def generate_latent_images(images_path, name):
 	:return:
 	'''
 	# Charger le modèle que l'on souhaite
-	model = getVAEModel(input_shape=IMG_SHAPE)
+	model = getVAEModel()
 	# Charger les poids de la partie encoder réseau entraîné
 	model.load_weights('saved_models/VAE.h5')
 	model = model.layers[1]
@@ -190,4 +190,4 @@ def generate_latent_images(images_path, name):
 
 
 # generateData(extension_name='.LSTM_train', frame_jump=1)
-generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_train.npy')
+generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_test.npy')

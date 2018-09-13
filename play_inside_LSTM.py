@@ -14,7 +14,7 @@ class ButtonCodes:
 	D_UP = 4
 	D_DOWN = 5
 
-lstm_model = getLSTMModel((1, LATENT_DIM + NB_ACTIONS))
+# lstm_model = getLSTMModel((1, LATENT_DIM + NB_ACTIONS))
 lstm_model = load_model("saved_models/LSTM.h5")
 
 vae_model = getVAEModel()
