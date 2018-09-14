@@ -8,7 +8,6 @@ import sys
 from constants import *
 
 
-# lstm_model = getLSTMModel((1, LATENT_DIM + NB_ACTIONS))
 lstm_model = load_model("./saved_models/LSTM.h5")
 
 vae_model = getVAEModel()
@@ -28,18 +27,19 @@ while True:
 			actions[0][Actions.JUMP] = 1
 			print('UP')
 		if keyboard.is_pressed('left'):
-			actions[0][Actions.D_LEFT] = 1
+			actions[0][Actions.LEFT] = 1
 			print('LEFT')
 		if keyboard.is_pressed('right'):
-			actions[0][Actions.D_RIGHT] = 1
+			actions[0][Actions.RIGHT] = 1
 			print('RIGHT')
 		if keyboard.is_pressed('down'):
-			actions[0][Actions.D_DOWN] = 1
-			print('RIGHT')
+			actions[0][Actions.DOWN] = 1
+			print('DOWN')
 		if keyboard.is_pressed('escape'):
 			print("exit")
 			sys.exit(1)
-	except:
+	except Exception as e:
+		print(e)
 		break
 
 	# Il faut fournir la latent_image + le tableau d'actions au LSTM

@@ -26,3 +26,4 @@
 - matplotlib
 - pyglet
 - pillow
+- keyboard

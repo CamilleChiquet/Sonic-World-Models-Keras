@@ -41,5 +41,3 @@ for i in range(epochs):
 	model.fit(x=X_train, y=Y_train, validation_data=(X_test, Y_test), epochs=1, batch_size=np.shape(X_train)[0], verbose=2, shuffle=False)
 
 model.save('./saved_models/LSTM.h5')
-
-# meilleure val_loss : 0.4649
