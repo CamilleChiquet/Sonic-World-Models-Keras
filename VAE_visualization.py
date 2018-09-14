@@ -62,5 +62,5 @@ def compare_data(original_data_path, reconstructed_data_path):
 		plt.pause(0.0000001)
 
 
-generate_render('data/images/GreenHillZone.Act1.test.npy', 'saved_models/VAE.h5')
-# compare_data('data/images/GreenHillZone.Act1.test.npy', 'data/reconstructed_images/GreenHillZone.Act1.test.reconstructed.npy')
+# generate_render('./data/images/GreenHillZone.Act1.test.npy', './saved_models/VAE.h5')
+# compare_data('./data/images/GreenHillZone.Act1.test.npy', './data/reconstructed_images/GreenHillZone.Act1.test.reconstructed.npy')

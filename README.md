@@ -4,6 +4,7 @@
 
 - MDN
 - Controller + NEAT
+- Wasserstein autoencoder
 
 ## FAIT
 

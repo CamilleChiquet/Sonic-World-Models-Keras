@@ -105,10 +105,10 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 		elif keycodes.R in keys_pressed:
 			print('save record')
 			images = np.array(images, dtype=np.uint8)
-			np.save('data/images/' + state + extension_name, images)
+			np.save('./data/images/' + state + extension_name, images)
 
 			actions = np.array(actions, dtype=np.bool)
-			np.save('data/actions/' + state + extension_name, actions)
+			np.save('./data/actions/' + state + extension_name, actions)
 			sys.exit(1)
 
 		inputs = {
@@ -134,7 +134,7 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 		if jump == 0:
 			jump = frame_jump
 			images.append(obs)
-			actions.append(action)
+			actions.append([inputs['A'], inputs['LEFT'], inputs['RIGHT'], inputs['DOWN']])
 
 		glBindTexture(GL_TEXTURE_2D, texture_id)
 		video_buffer = ctypes.cast(obs.tobytes(), ctypes.POINTER(ctypes.c_short))
@@ -174,7 +174,7 @@ def generate_latent_images(images_path, name):
 	# Charger le modèle que l'on souhaite
 	model = getVAEModel()
 	# Charger les poids de la partie encoder réseau entraîné
-	model.load_weights('saved_models/VAE.h5')
+	model.load_weights('./saved_models/VAE.h5')
 	model = model.layers[1]
 
 	images = np.load(images_path + name)
@@ -189,5 +189,5 @@ def generate_latent_images(images_path, name):
 	np.save('data/latent_images/' + name, latent_images)
 
 
-# generateData(extension_name='.LSTM_train', frame_jump=1)
-generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_test.npy')
+generateData(extension_name='.LSTM_test', frame_jump=1)
+# generate_latent_images(images_path='./data/images/', name='GreenHillZone.Act1.LSTM_train.npy')
