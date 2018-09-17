@@ -2,12 +2,12 @@
 
 ## A FAIRE
 
-- MDN
 - Controller + NEAT
 - Wasserstein autoencoder
 
 ## FAIT
 
+- MDN
 - LSTM
 - génération de données pour VAE
 - VAE
