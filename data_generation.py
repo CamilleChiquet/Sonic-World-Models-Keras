@@ -42,11 +42,11 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 	'''
 	jump = frame_jump
 	# Chargement du jeu et niveau
-	env = retro.make(game=game, state=state, use_restricted_actions=retro.Actions.ALL, scenario=scenario)
+	env = retro.make(game=game, state=state, use_restricted_actions=retro.ACTIONS_ALL, scenario=scenario)
 	obs = env.reset()
 
 
-	win_width = 1200
+	win_width = 900
 	screen_height, screen_width = obs.shape[:2]
 	win_height = win_width * screen_height // screen_width
 	win = pyglet.window.Window(width=win_width, height=win_height, vsync=False)
@@ -105,10 +105,10 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 		elif keycodes.R in keys_pressed:
 			print('save record')
 			images = np.array(images, dtype=np.uint8)
-			np.save('data/images/' + state + extension_name, images)
+			np.save('./data/images/' + state + extension_name, images)
 
 			actions = np.array(actions, dtype=np.bool)
-			np.save('data/actions/' + state + extension_name, actions)
+			np.save('./data/actions/' + state + extension_name, actions)
 			sys.exit(1)
 
 		inputs = {
@@ -127,14 +127,14 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 			'MODE': keycodes.TAB in keys_pressed or ButtonCodes.SELECT in buttons_pressed,
 			'START': keycodes.ENTER in keys_pressed or ButtonCodes.START in buttons_pressed,
 		}
-		action = [inputs[b] for b in env.buttons]
+		action = [inputs[b] for b in env.BUTTONS]
 
 		obs, rew, done, info = env.step(action)
 		jump -= 1
 		if jump == 0:
 			jump = frame_jump
 			images.append(obs)
-			actions.append(action)
+			actions.append([inputs['A'], inputs['LEFT'], inputs['RIGHT'], inputs['DOWN']])
 
 		glBindTexture(GL_TEXTURE_2D, texture_id)
 		video_buffer = ctypes.cast(obs.tobytes(), ctypes.POINTER(ctypes.c_short))
@@ -171,21 +171,23 @@ def generate_latent_images(images_path, name):
 	:param name: nom du tableau d'images
 	:return:
 	'''
-	input_shape = (224, 320, 3)
 	# Charger le modèle que l'on souhaite
-	model = getVAEModel(input_shape=input_shape)
+	model = getVAEModel()
 	# Charger les poids de la partie encoder réseau entraîné
-	model.load_weights('saved_models/VAE.h5')
+	model.load_weights('./saved_models/VAE.h5')
 	model = model.layers[1]
 
 	images = np.load(images_path + name)
 	images = images / 255
 
+	# On a 3 sorties [z_mean, z_log_var, z]
 	latent_images = model.predict(images)
+	# Seul z nous intéresse
+	latent_images = latent_images[2]
 	print(np.shape(latent_images))
 
 	np.save('data/latent_images/' + name, latent_images)
 
 
-generateData(extension_name='.LSTM_train', frame_jump=1)
-# generate_latent_images(images_path='data/images/', name='GreenHillZone.Act1.LSTM_test.npy')
+generateData(extension_name='.LSTM_test', frame_jump=1)
+# generate_latent_images(images_path='./data/images/', name='GreenHillZone.Act1.LSTM_train.npy')

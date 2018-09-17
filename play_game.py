@@ -26,7 +26,7 @@ class ButtonCodes:
 
 
 def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='scenario'):
-	env = retro.make(game=game, state=state, use_restricted_actions=retro.Actions.ALL, scenario=scenario)
+	env = retro.make(game=game, state=state, use_restricted_actions=retro.ACTIONS_ALL, scenario=scenario)
 	obs = env.reset()
 	screen_height, screen_width = obs.shape[:2]
 
@@ -91,7 +91,7 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 			'MODE': keycodes.TAB in keys_pressed or ButtonCodes.SELECT in buttons_pressed,
 			'START': keycodes.ENTER in keys_pressed or ButtonCodes.START in buttons_pressed,
 		}
-		action = [inputs[b] for b in env.buttons]
+		action = [inputs[b] for b in env.BUTTONS]
 
 		obs, rew, done, info = env.step(action)
 

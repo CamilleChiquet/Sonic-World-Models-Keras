@@ -2,11 +2,13 @@
 
 ## A FAIRE
 
-- LSTM
+- MDN
 - Controller + NEAT
+- Wasserstein autoencoder
 
 ## FAIT
 
+- LSTM
 - génération de données pour VAE
 - VAE
 - génération de données pour LSTM
@@ -24,6 +26,7 @@
 - matplotlib
 - pyglet
 - pillow
+- keyboard
 
 ## Liens utiles
 
