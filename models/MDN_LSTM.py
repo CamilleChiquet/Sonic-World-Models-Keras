@@ -103,11 +103,11 @@ class MDN_LSTM():
 	def set_weights(self, filepath):
 		self.model.load_weights(filepath)
 
-	def train(self, rnn_input, rnn_output, val_data):
+	def train(self, X_train, Y_train, val_data):
 		earlystop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=1, mode='auto')
 		callbacks_list = [earlystop]
 
-		self.model.fit(rnn_input, rnn_output, validation_data=val_data, shuffle=False, epochs=EPOCHS,
+		self.model.fit(X_train, Y_train, validation_data=val_data, shuffle=False, epochs=EPOCHS,
 					   batch_size=BATCH_SIZE, callbacks=callbacks_list, verbose=2)
 
 		self.model.save_weights('./saved_models/MDN_LSTM.h5')

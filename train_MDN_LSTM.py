@@ -1,6 +1,4 @@
-from keras.callbacks import ModelCheckpoint
 from constants import *
-from models.LSTM import getLSTMModel
 import numpy as np
 from models.MDN_LSTM import MDN_LSTM
 

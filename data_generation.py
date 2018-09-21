@@ -27,7 +27,8 @@ class ButtonCodes:
 	D_DOWN = 5
 
 
-def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='scenario', extension_name='', frame_jump=1):
+def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='scenario', extension_name='',
+				  frame_jump=1, save_images=True, save_actions=True):
 	'''
 	Permet de jouer à Sonic et d'enregistrer les images et actions de la session de jeu afin de créer des données d'entraînement
 
@@ -39,11 +40,25 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 		ex :frame_jump = 1 : chaque image de la session de jeu est sauvegardée
 			frame_jump = 3 : on sauvegarde seulement une image toutes les 3 images
 	:return:
+
+	Actions possibles :
+		Controler Sonic : flèches directionnelles + Z : sauter + S : accroupir
+		R : sauvegarder session (images + actions). Le nom de la sauvegarde se termine par extension_name + un indice
+			qui s'incrément à chaque enregistrement
+		C : annuler enregistrement actuel (images + actions vidées)
+		BackSpace : remise à 0 du niveau (images + actions vidées)
 	'''
+
+	print('\n\tBACKSPACE : début niveau'
+		  '\n\tC : annuler enregistrement en cours'
+		  '\n\tR : sauvegarder enregistrement en cours'
+		  '\n\tECHAP : FIN')
+
 	jump = frame_jump
 	# Chargement du jeu et niveau
 	env = retro.make(game=game, state=state, use_restricted_actions=retro.ACTIONS_ALL, scenario=scenario)
 	obs = env.reset()
+	save_index = 1
 
 
 	win_width = 900
@@ -95,7 +110,8 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 
 		# Fin de simu
 		if keycodes.ESCAPE in keys_pressed:
-			sys.exit(1)
+			pyglet.app.platform_event_loop.stop()
+			return
 		# Sert à réinitialiser les images et actions
 		elif keycodes.C in keys_pressed:
 			print('reset record')
@@ -104,12 +120,25 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 		# Enregistrement des tableaux d'images et d'actions capturés pendant la partie
 		elif keycodes.R in keys_pressed:
 			print('save record')
-			images = np.array(images, dtype=np.uint8)
-			np.save('./data/images/' + state + extension_name, images)
+			if save_images and len(images) > 10:
+				images = np.array(images, dtype=np.uint8)
+				np.save('./data/images/' + state + extension_name + str(save_index), images)
+				print('Images sauvegardées dans : ./data/images/' + state + extension_name + str(save_index))
 
-			actions = np.array(actions, dtype=np.bool)
-			np.save('./data/actions/' + state + extension_name, actions)
-			sys.exit(1)
+			if save_actions and len(actions) > 10:
+				actions = np.array(actions, dtype=np.bool)
+				np.save('./data/actions/' + state + extension_name + str(save_index), actions)
+				print('Actions sauvegardées dans : ./data/actions/' + state + extension_name + str(save_index))
+
+			images = []
+			actions = []
+			save_index += 1
+		# RAZ du niveau ainsi que des images et actions enregistrées
+		elif keycodes.BACKSPACE in keys_pressed:
+			print('reset level')
+			env.reset()
+			images = []
+			actions = []
 
 		inputs = {
 			'A': keycodes.Z in keys_pressed or ButtonCodes.A in buttons_pressed,
@@ -133,8 +162,10 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 		jump -= 1
 		if jump == 0:
 			jump = frame_jump
-			images.append(obs)
-			actions.append([inputs['A'], inputs['LEFT'], inputs['RIGHT'], inputs['DOWN']])
+			if save_images:
+				images.append(obs)
+			if save_actions:
+				actions.append([inputs['A'], inputs['LEFT'], inputs['RIGHT'], inputs['DOWN']])
 
 		glBindTexture(GL_TEXTURE_2D, texture_id)
 		video_buffer = ctypes.cast(obs.tobytes(), ctypes.POINTER(ctypes.c_short))
@@ -162,32 +193,3 @@ def generateData(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', sc
 
 	pyglet.app.platform_event_loop.stop()
 
-
-def generate_latent_images(images_path, name):
-	'''
-	Charge un tableau d'images et sauvegarde sa version encodée par le VAE
-
-	:param images_path: chemin où se trouvent les images à encoder
-	:param name: nom du tableau d'images
-	:return:
-	'''
-	# Charger le modèle que l'on souhaite
-	model = getVAEModel()
-	# Charger les poids de la partie encoder réseau entraîné
-	model.load_weights('./saved_models/VAE.h5')
-	model = model.layers[1]
-
-	images = np.load(images_path + name)
-	images = images / 255
-
-	# On a 3 sorties [z_mean, z_log_var, z]
-	latent_images = model.predict(images)
-	# Seul z nous intéresse
-	latent_images = latent_images[2]
-	print(np.shape(latent_images))
-
-	np.save('data/latent_images/' + name, latent_images)
-
-
-generateData(extension_name='.LSTM_test', frame_jump=1)
-# generate_latent_images(images_path='./data/images/', name='GreenHillZone.Act1.LSTM_train.npy')
