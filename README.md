@@ -2,7 +2,6 @@
 
 ## A FAIRE
 
-- Passer le jeu en 15 fps
 - Controller + NEAT
 
 ## FAIT

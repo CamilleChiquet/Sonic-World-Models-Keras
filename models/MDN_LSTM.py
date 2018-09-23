@@ -8,7 +8,6 @@ from constants import *
 HIDDEN_UNITS = 256
 GAUSSIAN_MIXTURES = 5
 BATCH_SIZE = 32
-EPOCHS = 200
 
 
 def get_mixture_coef(y_pred):
@@ -96,21 +95,19 @@ class MDN_LSTM():
 		def rnn_loss(y_true, y_pred):
 			return rnn_r_loss(y_true, y_pred)  # + rnn_kl_loss(y_true, y_pred)
 
-		rnn.compile(loss=rnn_loss, optimizer='rmsprop', metrics=[rnn_r_loss, rnn_kl_loss])
+		rnn.compile(loss=rnn_loss, optimizer='adam', metrics=[rnn_r_loss, rnn_kl_loss])
 
 		return (rnn, forward)
 
-	def set_weights(self, filepath):
+	def load_weights(self, filepath):
 		self.model.load_weights(filepath)
 
-	def train(self, X_train, Y_train, val_data):
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=1, mode='auto')
+	def train(self, X_train, Y_train, val_data, epochs=200):
+		earlystop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=1, mode='min')
 		callbacks_list = [earlystop]
 
-		self.model.fit(X_train, Y_train, validation_data=val_data, shuffle=False, epochs=EPOCHS,
+		self.model.fit(X_train, Y_train, validation_data=val_data, shuffle=False, epochs=epochs,
 					   batch_size=BATCH_SIZE, callbacks=callbacks_list, verbose=2)
-
-		self.model.save_weights('./saved_models/MDN_LSTM.h5')
 
 	def save_weights(self, filepath):
 		self.model.save_weights(filepath)
