@@ -2,8 +2,8 @@
 
 ## A FAIRE
 
+- Passer le jeu en 15 fps
 - Controller + NEAT
-- Wasserstein autoencoder
 
 ## FAIT
 
@@ -15,7 +15,9 @@
 
 ## A ESSAYER
 
+- Wasserstein autoencoder
 - Controller + apprentissage tutoré
+- Tester du transfert learning pour les couches convolutives du VAE : prendre celles d'un réseau connu pour de la reco visuelle
 
 ## Dépendances
 

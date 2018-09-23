@@ -74,15 +74,15 @@ vae.generate_render(data_path=images_array_path)
 
 print('\nGénération données LSTM.')
 
-# Faire 2 enregistrements
+# Faire une dizaine d'enregistrements (5 si 8Go de RAM)
 print("\tDonnées d'entraînement")
-generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TRAINING_EXT, frame_jump=1)
-# Faire 1 enregistrement
+generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TRAINING_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
+# Faire 2 enregistrement (1 si 8Go de RAM)
 print("\tDonnées de validation")
-generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TEST_EXT, frame_jump=1)
+generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TEST_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
 
 X_train_rnn, Y_train_rnn, X_test_rnn, Y_test_rnn = vae.generate_latent_images()
-random_latent_image = Y_train_rnn[0]
+random_latent_image = Y_train_rnn[42]
 X_train_rnn = np.reshape(X_train_rnn, (X_train_rnn.shape[0], 1, X_train_rnn.shape[1]))
 X_test_rnn = np.reshape(X_test_rnn, (X_test_rnn.shape[0], 1, X_test_rnn.shape[1]))
 
@@ -95,10 +95,10 @@ X_test_rnn = np.reshape(X_test_rnn, (X_test_rnn.shape[0], 1, X_test_rnn.shape[1]
 print('\nEntraînement LSTM.')
 
 lstm = LSTM()
-lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, validation_data=(X_test_rnn, Y_test_rnn))
+lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, validation_data=(X_test_rnn, Y_test_rnn), epochs=200)
 del X_train_rnn, X_test_rnn, Y_train_rnn, Y_test_rnn
 lstm.save_weights(SAVED_MODELS_DIR + '/LSTM.h5')
-# lstm .load_weights(SAVED_MODELS_DIR + '/LSTM.h5')
+# lstm.load_weights(SAVED_MODELS_DIR + '/LSTM.h5')
 
 '''
 	===============================================

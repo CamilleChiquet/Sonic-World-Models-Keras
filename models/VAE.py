@@ -147,9 +147,6 @@ class VAE():
 					 validation_split=validation_split, shuffle=True)
 
 	def generate_latent_images(self):
-		"""
-		TODO : ne pas concaténer les tableaux d'images, il faut les différentier
-		"""
 
 		# ================ training data =====================
 		training_latent_images = None
@@ -169,9 +166,11 @@ class VAE():
 				training_actions = np.load(data_file)
 			else:
 				training_actions = np.concatenate((training_actions, np.load(data_file)))
-		X_train = np.append(training_latent_images[:-1], training_actions[:-1], axis=1)
-		Y_train = training_latent_images[1:]
-		del training_latent_images, training_actions
+		X_train = np.append(training_latent_images, training_actions, axis=1)
+		Y_train = training_latent_images
+		del training_latent_images,
+		X_train = np.delete(X_train[:np.shape(X_train)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
+		Y_train = np.delete(Y_train, np.s_[::BATCH_SIZE + 1], axis=0)
 
 		# ================ validation data =====================
 
@@ -192,9 +191,11 @@ class VAE():
 				validation_actions = np.load(data_file)
 			else:
 				validation_actions = np.concatenate((validation_actions, np.load(data_file)))
-		X_test = np.append(test_latent_images[:-1], validation_actions[:-1], axis=1)
-		Y_test = test_latent_images[1:]
+		X_test = np.append(test_latent_images, validation_actions, axis=1)
+		Y_test = test_latent_images
 		del test_latent_images, validation_actions
+		X_test = np.delete(X_test[:np.shape(X_test)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
+		Y_test = np.delete(Y_test, np.s_[::BATCH_SIZE + 1], axis=0)
 
 		return X_train, Y_train, X_test, Y_test
 

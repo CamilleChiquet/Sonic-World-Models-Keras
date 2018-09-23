@@ -1,11 +1,12 @@
 from keras import Sequential
-from keras.layers import BatchNormalization, CuDNNLSTM
+from keras.layers import BatchNormalization, CuDNNLSTM, regularizers, Dense, Dropout
 from keras.engine.saving import load_model
 import numpy as np
 import matplotlib.pyplot as plt
 import keyboard
 import sys
 from constants import *
+from keras import layers
 
 
 
@@ -18,19 +19,17 @@ class LSTM():
 
 	def _build(self):
 		self.model = Sequential()
-		self.model.add(CuDNNLSTM(units=LATENT_DIM, input_shape=self.input_shape))
+		self.model.add(layers.LSTM(units=LATENT_DIM, input_shape=self.input_shape, activation='sigmoid', kernel_initializer='random_normal'))
 		self.model.add(BatchNormalization())
 		self.model.compile(loss='mse', optimizer='adam')
 
-	def train(self, X_train, Y_train, validation_data, epochs=1000):
+	def train(self, X_train, Y_train, validation_data, epochs=200):
 
 		print(X_train.shape)
 		print(Y_train.shape)
 		print(validation_data[0].shape)
-		for i in range(epochs):
-			print("========= ", i + 1, "/", epochs, " =========")
-			self.model.fit(x=X_train, y=Y_train, validation_data=validation_data, epochs=1,
-						   batch_size=np.shape(X_train)[0], verbose=2, shuffle=False)
+		self.model.fit(x=X_train, y=Y_train, validation_data=validation_data, epochs=epochs,
+					   batch_size=BATCH_SIZE, verbose=2, shuffle=False)
 
 	def save(self, path):
 		self.model.save(path)

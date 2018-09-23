@@ -28,7 +28,7 @@ class ButtonCodes:
 
 
 def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='scenario', extension_name='',
-				  frame_jump=1, save_images=True, save_actions=True):
+				  frame_jump=1, save_images=True, save_actions=True, fixed_record_size=False):
 	'''
 	Permet de jouer à Sonic et d'enregistrer les images et actions de la session de jeu afin de créer des données d'entraînement
 
@@ -39,6 +39,7 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 	:param frame_jump: facteur de prise d'images
 		ex :frame_jump = 1 : chaque image de la session de jeu est sauvegardée
 			frame_jump = 3 : on sauvegarde seulement une image toutes les 3 images
+			la dernière action effectuée est répétée durant les frames sautées
 	:return:
 
 	Actions possibles :
@@ -54,7 +55,7 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 		  '\n\tR : sauvegarder enregistrement en cours'
 		  '\n\tECHAP : FIN')
 
-	jump = frame_jump
+	jump = 0
 	# Chargement du jeu et niveau
 	env = retro.make(game=game, state=state, use_restricted_actions=retro.ACTIONS_ALL, scenario=scenario)
 	obs = env.reset()
@@ -115,11 +116,25 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 		# Sert à réinitialiser les images et actions
 		elif keycodes.C in keys_pressed:
 			print('reset record')
+			print(len(images))
 			images = []
 			actions = []
 		# Enregistrement des tableaux d'images et d'actions capturés pendant la partie
+		elif fixed_record_size and len(images) == BATCH_SIZE + 1:
+			if save_images:
+				images = np.array(images, dtype=np.uint8)
+				np.save('./data/images/' + state + extension_name + str(save_index), images)
+				print('Images sauvegardées dans : ./data/images/' + state + extension_name + str(save_index))
+
+			if save_actions:
+				actions = np.array(actions, dtype=np.bool)
+				np.save('./data/actions/' + state + extension_name + str(save_index), actions)
+				print('Actions sauvegardées dans : ./data/actions/' + state + extension_name + str(save_index))
+
+			images = []
+			actions = []
+			save_index += 1
 		elif keycodes.R in keys_pressed:
-			print('save record')
 			if save_images and len(images) > 10:
 				images = np.array(images, dtype=np.uint8)
 				np.save('./data/images/' + state + extension_name + str(save_index), images)
@@ -156,16 +171,20 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 			'MODE': keycodes.TAB in keys_pressed or ButtonCodes.SELECT in buttons_pressed,
 			'START': keycodes.ENTER in keys_pressed or ButtonCodes.START in buttons_pressed,
 		}
-		action = [inputs[b] for b in env.BUTTONS]
 
-		obs, rew, done, info = env.step(action)
-		jump -= 1
 		if jump == 0:
+			action = [inputs[b] for b in env.BUTTONS]
+			last_action = action
+			obs, rew, done, info = env.step(action)
 			jump = frame_jump
 			if save_images:
 				images.append(obs)
 			if save_actions:
 				actions.append([inputs['A'], inputs['LEFT'], inputs['RIGHT'], inputs['DOWN']])
+		else:
+			obs, rew, done, info = env.step(last_action)
+
+		jump -= 1
 
 		glBindTexture(GL_TEXTURE_2D, texture_id)
 		video_buffer = ctypes.cast(obs.tobytes(), ctypes.POINTER(ctypes.c_short))
