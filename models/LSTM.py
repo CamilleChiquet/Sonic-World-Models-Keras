@@ -1,4 +1,4 @@
-from keras import Sequential
+from keras import Sequential, metrics
 from keras.layers import BatchNormalization, CuDNNLSTM, regularizers, Dense, Dropout
 from keras.engine.saving import load_model
 import numpy as np
@@ -7,7 +7,7 @@ import keyboard
 import sys
 from constants import *
 from keras import layers
-
+import keras.backend as K
 
 
 
@@ -23,13 +23,24 @@ class LSTM():
 		self.model.add(BatchNormalization())
 		self.model.compile(loss='mse', optimizer='adam')
 
-	def train(self, X_train, Y_train, validation_data, epochs=200):
+	def train(self, X_train, Y_train, X_test, Y_test, nb_training_sequences, nb_validation_sequences, epochs=200):
 
 		print(X_train.shape)
 		print(Y_train.shape)
-		print(validation_data[0].shape)
-		self.model.fit(x=X_train, y=Y_train, validation_data=validation_data, epochs=epochs,
-					   batch_size=BATCH_SIZE, verbose=2, shuffle=False)
+		print(X_test.shape)
+		print(Y_test.shape)
+		for epoch in range(epochs):
+			print("=========== EPOCH " + str(epoch + 1) + "/" + str(epochs))
+			training_error = 0
+			for i in range(nb_training_sequences):
+				history = self.model.fit(x=X_train[i], y=Y_train[i], epochs=1, batch_size=256, verbose=0, shuffle=False)
+				training_error += history.history["loss"][0]
+			print("loss : " + str(training_error / nb_training_sequences))
+			error = 0
+			for j in range(nb_validation_sequences):
+				preds = self.model.predict(X_test[j], batch_size=BATCH_SIZE)
+				error += np.mean(np.square(Y_test[j]- preds))
+			print("validation loss : " + str(error /nb_validation_sequences))
 
 	def save(self, path):
 		self.model.save(path)

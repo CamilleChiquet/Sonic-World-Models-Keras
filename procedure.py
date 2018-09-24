@@ -84,9 +84,12 @@ vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
 # generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TEST_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
 
 X_train_rnn, Y_train_rnn, X_test_rnn, Y_test_rnn = vae.generate_latent_images()
-random_latent_image = Y_train_rnn[42]
-X_train_rnn = np.reshape(X_train_rnn, (X_train_rnn.shape[0], 1, X_train_rnn.shape[1]))
-X_test_rnn = np.reshape(X_test_rnn, (X_test_rnn.shape[0], 1, X_test_rnn.shape[1]))
+nb_training_sequences = int(X_train_rnn.shape[0]/BATCH_SIZE)
+nb_validation_sequences = int(X_test_rnn.shape[0]/BATCH_SIZE)
+X_train_rnn = np.reshape(X_train_rnn, (nb_training_sequences, BATCH_SIZE, 1, X_train_rnn.shape[1]))
+X_test_rnn = np.reshape(X_test_rnn, (nb_validation_sequences, BATCH_SIZE, 1, X_test_rnn.shape[1]))
+Y_train_rnn = np.reshape(Y_train_rnn, (nb_training_sequences, BATCH_SIZE, Y_train_rnn.shape[1]))
+Y_test_rnn = np.reshape(Y_test_rnn, (nb_validation_sequences, BATCH_SIZE, Y_test_rnn.shape[1]))
 
 '''
 	===============================================
@@ -97,9 +100,10 @@ X_test_rnn = np.reshape(X_test_rnn, (X_test_rnn.shape[0], 1, X_test_rnn.shape[1]
 print('\nEntraînement LSTM.')
 
 lstm = LSTM()
-# lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, validation_data=(X_test_rnn, Y_test_rnn), epochs=200)
+lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, X_test=X_test_rnn, Y_test = Y_test_rnn, epochs=100,
+		   nb_training_sequences=nb_training_sequences, nb_validation_sequences=nb_validation_sequences)
 # lstm.save_weights(SAVED_MODELS_DIR + '/LSTM.h5')
-lstm.load_weights(SAVED_MODELS_DIR + '/LSTM.h5')
+# lstm.load_weights(SAVED_MODELS_DIR + '/LSTM.h5')
 
 '''
 	===============================================
@@ -124,8 +128,7 @@ lstm.load_weights(SAVED_MODELS_DIR + '/LSTM.h5')
 del X_train_rnn, X_test_rnn, Y_train_rnn, Y_test_rnn
 print('\nJouez dans un niveau rêvé par le LSTM !')
 
-# Le LSTM commence à partir d'une image latente choisie arbitrairement
-# On peut choisir un autre indice afin que le "rêve" du LSTM démarre différemment
-latent_image = [random_latent_image]
+# Le LSTM commence à partir d'une image latente générée aléatoirement
+latent_image = [np.random.rand(LATENT_DIM)]
 # Choisir entre "lstm" et "mdn_lstm" suivant le choix en 5)
 lstm.play_in_dream(start_image=latent_image, decoder=vae.decoder)
