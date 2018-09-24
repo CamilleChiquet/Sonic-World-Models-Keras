@@ -28,6 +28,7 @@
 - pyglet
 - pillow
 - keyboard
+- neat-python
 
 ## Liens utiles
 

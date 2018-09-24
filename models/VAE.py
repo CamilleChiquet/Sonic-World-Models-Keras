@@ -129,6 +129,7 @@ class VAE():
 
 	def train(self, epochs=100, batch_size=32, validation_split=0.2):
 		training_data = None
+
 		# On parcourt tous les fichiers numpy créés précédemment
 		for data_file in glob.glob(os.path.join(IMG_DIR, '*' + VAE_TRAINING_EXT + '*.npy')):
 			print(data_file)
@@ -136,12 +137,14 @@ class VAE():
 				training_data = np.load(data_file)
 			else:
 				training_data = np.concatenate((training_data, np.load(data_file)))
-		training_data = training_data / 255
 
+		# Le tableau chargé est de type uint8, en divisant par 255 python le convertit automatiquement en float64.
+		# Pour des raisons de mémoire, je le passe en float16
+		training_data = training_data.astype(np.float16) / 255
+
+		# On stoppe l'entraînement si le réseau n'a pas amélioré sa val_loss depuis les 5 dernières epochs
 		earlyStop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=5, verbose=2)
-		checkpoint = ModelCheckpoint('./saved_models/VAE.h5', monitor='val_loss', verbose=2, save_best_only=True,
-									 mode='min')
-		callbacks_list = [checkpoint, earlyStop]
+		callbacks_list = [earlyStop]
 
 		self.vae.fit(training_data, epochs=epochs, batch_size=batch_size, verbose=2, callbacks=callbacks_list,
 					 validation_split=validation_split, shuffle=True)
@@ -149,14 +152,14 @@ class VAE():
 	def generate_latent_images(self):
 
 		# ================ training data =====================
+
 		training_latent_images = None
 		for data_file in glob.glob(os.path.join(IMG_DIR, '*' + RNN_TRAINING_EXT + '*.npy')):
 			print(data_file)
 			if training_latent_images is None:
-				training_latent_images = np.load(data_file)
+				training_latent_images = np.load(data_file).astype(np.float16) / 255
 			else:
-				training_latent_images = np.concatenate((training_latent_images, np.load(data_file)))
-		training_latent_images = training_latent_images / 255
+				training_latent_images = np.concatenate((training_latent_images, np.load(data_file).astype(np.float16)/255))
 		training_latent_images = self.encoder.predict(training_latent_images)
 
 		training_actions = None
@@ -166,23 +169,24 @@ class VAE():
 				training_actions = np.load(data_file)
 			else:
 				training_actions = np.concatenate((training_actions, np.load(data_file)))
-		X_train = np.append(training_latent_images, training_actions, axis=1)
-		Y_train = training_latent_images
-		del training_latent_images,
-		X_train = np.delete(X_train[:np.shape(X_train)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
-		Y_train = np.delete(Y_train, np.s_[::BATCH_SIZE + 1], axis=0)
+
+		x_train = np.append(training_latent_images, training_actions, axis=1)
+		y_train = training_latent_images
+
+		del training_latent_images, training_actions
+		x_train = np.delete(x_train[:np.shape(x_train)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
+		y_train = np.delete(y_train, np.s_[::BATCH_SIZE + 1], axis=0)
 
 		# ================ validation data =====================
 
-		test_latent_images = None
+		validation_latent_images = None
 		for data_file in glob.glob(os.path.join(IMG_DIR, '*' + RNN_TEST_EXT + '*.npy')):
 			print(data_file)
-			if test_latent_images is None:
-				test_latent_images = np.load(data_file)
+			if validation_latent_images is None:
+				validation_latent_images = np.load(data_file).astype(np.float16)/255
 			else:
-				test_latent_images = np.concatenate((test_latent_images, np.load(data_file)))
-		test_latent_images = test_latent_images / 255
-		test_latent_images = self.encoder.predict(test_latent_images)
+				validation_latent_images = np.concatenate((validation_latent_images, np.load(data_file).astype(np.float16)/255))
+		validation_latent_images = self.encoder.predict(validation_latent_images)
 
 		validation_actions = None
 		for data_file in glob.glob(os.path.join(ACTIONS_DIR, '*' + RNN_TEST_EXT + '*.npy')):
@@ -191,13 +195,14 @@ class VAE():
 				validation_actions = np.load(data_file)
 			else:
 				validation_actions = np.concatenate((validation_actions, np.load(data_file)))
-		X_test = np.append(test_latent_images, validation_actions, axis=1)
-		Y_test = test_latent_images
-		del test_latent_images, validation_actions
-		X_test = np.delete(X_test[:np.shape(X_test)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
-		Y_test = np.delete(Y_test, np.s_[::BATCH_SIZE + 1], axis=0)
 
-		return X_train, Y_train, X_test, Y_test
+		x_test = np.append(validation_latent_images, validation_actions, axis=1)
+		y_test = validation_latent_images
+		del validation_latent_images, validation_actions
+		x_test = np.delete(x_test[:np.shape(x_test)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
+		y_test = np.delete(y_test, np.s_[::BATCH_SIZE + 1], axis=0)
+
+		return x_train, y_train, x_test, y_test
 
 	def generate_render(self, data_path, save_path=None):
 		'''

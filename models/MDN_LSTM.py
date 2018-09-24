@@ -5,6 +5,7 @@ from keras import backend as K
 from keras.callbacks import EarlyStopping
 from constants import *
 
+
 HIDDEN_UNITS = 256
 GAUSSIAN_MIXTURES = 5
 BATCH_SIZE = 32
