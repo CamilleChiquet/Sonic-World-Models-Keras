@@ -174,8 +174,8 @@ class VAE():
 		y_train = training_latent_images
 
 		del training_latent_images, training_actions
-		x_train = np.delete(x_train[:np.shape(x_train)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
-		y_train = np.delete(y_train, np.s_[::BATCH_SIZE + 1], axis=0)
+		x_train = np.delete(x_train[:np.shape(x_train)[0] - 1], np.s_[SEQ_LENGTH::SEQ_LENGTH + 1], axis=0)
+		y_train = np.delete(y_train, np.s_[::SEQ_LENGTH + 1], axis=0)
 
 		# ================ validation data =====================
 
@@ -199,8 +199,8 @@ class VAE():
 		x_test = np.append(validation_latent_images, validation_actions, axis=1)
 		y_test = validation_latent_images
 		del validation_latent_images, validation_actions
-		x_test = np.delete(x_test[:np.shape(x_test)[0] - 1], np.s_[BATCH_SIZE::BATCH_SIZE + 1], axis=0)
-		y_test = np.delete(y_test, np.s_[::BATCH_SIZE + 1], axis=0)
+		x_test = np.delete(x_test[:np.shape(x_test)[0] - 1], np.s_[SEQ_LENGTH::SEQ_LENGTH + 1], axis=0)
+		y_test = np.delete(y_test, np.s_[::SEQ_LENGTH + 1], axis=0)
 
 		return x_train, y_train, x_test, y_test
 

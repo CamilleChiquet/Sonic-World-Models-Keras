@@ -7,7 +7,7 @@ NB_ACTIONS = 4
 IMG_SHAPE = (224, 320, 3)
 
 # Taille fixe des enregistrements pour le lstm
-BATCH_SIZE = 512
+SEQ_LENGTH = 512
 
 # Le jeu est à 60 fps, en prenant seulement 1/4 images on entraîne nos réseaux à jouer à 15 fps (moins de données)
 FRAME_JUMP = 4

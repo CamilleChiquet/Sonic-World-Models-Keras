@@ -83,13 +83,25 @@ vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
 # print("\tDonnées de validation")
 # generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TEST_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
 
-X_train_rnn, Y_train_rnn, X_test_rnn, Y_test_rnn = vae.generate_latent_images()
-nb_training_sequences = int(X_train_rnn.shape[0]/BATCH_SIZE)
-nb_validation_sequences = int(X_test_rnn.shape[0]/BATCH_SIZE)
-X_train_rnn = np.reshape(X_train_rnn, (nb_training_sequences, BATCH_SIZE, 1, X_train_rnn.shape[1]))
-X_test_rnn = np.reshape(X_test_rnn, (nb_validation_sequences, BATCH_SIZE, 1, X_test_rnn.shape[1]))
-Y_train_rnn = np.reshape(Y_train_rnn, (nb_training_sequences, BATCH_SIZE, Y_train_rnn.shape[1]))
-Y_test_rnn = np.reshape(Y_test_rnn, (nb_validation_sequences, BATCH_SIZE, Y_test_rnn.shape[1]))
+# X_train_rnn, Y_train_rnn, X_test_rnn, Y_test_rnn = vae.generate_latent_images()
+#
+# np.save(DATA_DIR + '/X_train_rnn', X_train_rnn)
+# np.save(DATA_DIR + '/X_test_rnn', X_test_rnn)
+# np.save(DATA_DIR + '/Y_train_rnn', Y_train_rnn)
+# np.save(DATA_DIR + '/Y_test_rnn', Y_test_rnn)
+
+X_train_rnn = np.load(DATA_DIR + '/X_train_rnn.npy')
+X_test_rnn = np.load(DATA_DIR + '/X_test_rnn.npy')
+Y_train_rnn = np.load(DATA_DIR + '/Y_train_rnn.npy')
+Y_test_rnn = np.load(DATA_DIR + '/Y_test_rnn.npy')
+
+# nb_training_sequences = int(X_train_rnn.shape[0] / SEQ_LENGTH)
+# nb_validation_sequences = int(X_test_rnn.shape[0] / SEQ_LENGTH)
+
+X_train_rnn = np.reshape(X_train_rnn, (X_train_rnn.shape[0], 1, X_train_rnn.shape[1]))
+X_test_rnn = np.reshape(X_test_rnn, (X_test_rnn.shape[0], 1, X_test_rnn.shape[1]))
+Y_train_rnn = np.reshape(Y_train_rnn, (Y_train_rnn.shape[0], Y_train_rnn.shape[1]))
+Y_test_rnn = np.reshape(Y_test_rnn, (Y_test_rnn.shape[0], Y_test_rnn.shape[1]))
 
 '''
 	===============================================
@@ -100,9 +112,8 @@ Y_test_rnn = np.reshape(Y_test_rnn, (nb_validation_sequences, BATCH_SIZE, Y_test
 print('\nEntraînement LSTM.')
 
 lstm = LSTM()
-lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, X_test=X_test_rnn, Y_test = Y_test_rnn, epochs=100,
-		   nb_training_sequences=nb_training_sequences, nb_validation_sequences=nb_validation_sequences)
-# lstm.save_weights(SAVED_MODELS_DIR + '/LSTM.h5')
+lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, X_test=X_test_rnn, Y_test=Y_test_rnn, epochs=200)
+lstm.save_weights(SAVED_MODELS_DIR + '/LSTM.h5')
 # lstm.load_weights(SAVED_MODELS_DIR + '/LSTM.h5')
 
 '''

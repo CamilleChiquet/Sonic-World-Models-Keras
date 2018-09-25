@@ -120,7 +120,7 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 			images = []
 			actions = []
 		# Enregistrement des tableaux d'images et d'actions capturés pendant la partie
-		elif fixed_record_size and len(images) == BATCH_SIZE + 1:
+		elif fixed_record_size and len(images) == SEQ_LENGTH + 1:
 			if save_images:
 				images = np.array(images, dtype=np.uint8)
 				np.save('./data/images/' + state + extension_name + str(save_index), images)

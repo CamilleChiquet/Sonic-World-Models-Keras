@@ -108,7 +108,7 @@ class MDN_LSTM():
 		callbacks_list = [earlystop]
 
 		self.model.fit(X_train, Y_train, validation_data=val_data, shuffle=False, epochs=epochs,
-					   batch_size=BATCH_SIZE, callbacks=callbacks_list, verbose=2)
+					   batch_size=SEQ_LENGTH, callbacks=callbacks_list, verbose=2)
 
 	def save_weights(self, filepath):
 		self.model.save_weights(filepath)
