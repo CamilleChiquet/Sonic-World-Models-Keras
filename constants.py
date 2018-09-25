@@ -20,6 +20,7 @@ DATA_DIR = './data'
 ACTIONS_DIR = DATA_DIR + '/actions'
 IMG_DIR = DATA_DIR + '/images'
 LATENT_IMG_DIR = DATA_DIR + '/latent_images'
+NEAT_DIR = './neat'
 SAVED_MODELS_DIR = './saved_models'
 
 class Actions:

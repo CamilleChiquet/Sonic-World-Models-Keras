@@ -40,3 +40,5 @@ def create_project_folders():
 		os.makedirs(LATENT_IMG_DIR)
 	if not os.path.exists(SAVED_MODELS_DIR):
 		os.makedirs(SAVED_MODELS_DIR)
+	if not os.path.exists(NEAT_DIR):
+		os.makedirs(NEAT_DIR)
