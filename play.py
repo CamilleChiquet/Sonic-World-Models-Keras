@@ -70,6 +70,7 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, None)
 
+	total_reward = 0.0
 	while not win.has_exit:
 		win.dispatch_events()
 
@@ -120,6 +121,8 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 			jump = frame_jump
 		else:
 			obs, rew, done, info = env.step(last_action)
+		total_reward += rew
+		print(total_reward)
 		print(rew)
 		jump -= 1
 
@@ -148,5 +151,3 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 		clock.tick()
 
 	pyglet.app.platform_event_loop.stop()
-
-play()
