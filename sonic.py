@@ -58,7 +58,7 @@ class PooledErrorCompute(object):
 			total_score = 0.0
 			best_score = 0.0
 			steps_without_progress = 0
-			# TODO : stop simu si pas d'amélioration du score depuis N steps
+			
 			while 1:
 				print('step : ' + str(j))
 				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
