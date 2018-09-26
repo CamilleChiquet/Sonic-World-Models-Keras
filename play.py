@@ -120,7 +120,7 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 			jump = frame_jump
 		else:
 			obs, rew, done, info = env.step(last_action)
-
+		print(rew)
 		jump -= 1
 
 		glBindTexture(GL_TEXTURE_2D, texture_id)
@@ -149,3 +149,4 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 
 	pyglet.app.platform_event_loop.stop()
 
+play()

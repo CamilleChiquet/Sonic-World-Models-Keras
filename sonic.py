@@ -15,19 +15,17 @@ import visualize
 from models.VAE import VAE
 from constants import *
 import retro
+import gc
 
 env = retro.make(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', use_restricted_actions=retro.ACTIONS_ALL,
 				 scenario='scenario')
 
-print("action space: {0!r}".format(env.action_space))
-print("observation space: {0!r}".format(env.observation_space))
+# env = gym.wrappers.Monitor(env, 'results', force=True)
 
-max_time_steps = 4500
-
-env = gym.wrappers.Monitor(env, 'results', force=True)
-
-min_reward = 0
-max_reward = 9000
+MIN_REWARD = 0
+MAX_REWARD = 9000
+MAX_STEPS_WITHOUT_PROGRESS = 600
+MAX_STEPS = 4500
 
 score_range = []
 
@@ -50,17 +48,19 @@ class PooledErrorCompute(object):
 		print("network creation time {0}".format(time.time() - t0))
 		t0 = time.time()
 
-		episodes = []
+		episodes_score = []
 		for genome, net in nets:
 			observation = env.reset()
 			observation = np.reshape(observation, (1, observation.shape[0], observation.shape[1], observation.shape[2]))
 			latent_vector = encoder.predict(observation)[0]
-			episode_data = []
 			j = 0
-			max_reward_step = 0
+			best_score_step = 0
 			total_score = 0.0
-			# TODO : mettre 1 / 4 frames
+			best_score = 0.0
+			steps_without_progress = 0
+			# TODO : stop simu si pas d'amélioration du score depuis N steps
 			while 1:
+				print('step : ' + str(j))
 				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
 				if j % 4 == 0:
 					action = np.zeros((12,), dtype=np.bool)
@@ -78,22 +78,29 @@ class PooledErrorCompute(object):
 				observation, reward, done, info = env.step(action)
 				observation = np.reshape(observation, (1, observation.shape[0], observation.shape[1], observation.shape[2]))
 				latent_vector = encoder.predict(observation)[0]
-				if reward > total_score:
-					total_score = reward
-					max_reward_step = j
-				episode_data.append((j, latent_vector, action, reward))
+				del observation
+				total_score += reward
+				if total_score > best_score:
+					print('new best score : ' + str(total_score))
+					best_score = total_score
+					best_score_step = j
+					steps_without_progress = 0
+				else:
+					steps_without_progress += 1
 
-				if done or j >= max_time_steps:
+				if done or j >= MAX_STEPS or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
 					break
 
 				j += 1
 
-			episodes.append((total_score, episode_data))
-			genome.fitness = total_score - max_reward_step
+			gc.collect()
+
+			episodes_score.append(total_score)
+			genome.fitness = total_score - best_score_step
 
 		print("simulation run time {0}".format(time.time() - t0))
 
-		scores = [s for s, e in episodes]
+		scores = [s for s in episodes_score]
 		score_range.append((min(scores), np.mean(scores), max(scores)))
 
 
@@ -159,7 +166,7 @@ def run():
 				best_scores.append(score)
 				avg_score = sum(best_scores) / len(best_scores)
 				print(k, score, avg_score)
-				if avg_score < max_reward:
+				if avg_score < MAX_REWARD:
 					solved = False
 					break
 

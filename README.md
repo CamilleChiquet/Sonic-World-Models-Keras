@@ -30,6 +30,11 @@
 - keyboard
 - neat-python
 
+## Avant de lancer
+
+Copier le fichier "scenario.json" dans le dossier sonic au sein du package retro.
+Pour mon cas (j'utilise Pycharm) je le copie dans : venv\Lib\site-packages\retro\data\SonicTheHedgehog-Genesis
+
 ## Liens utiles
 
 - [World Models](https://worldmodels.github.io/)
