@@ -1,4 +1,4 @@
-from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.callbacks import EarlyStopping
 from keras.layers import Dense, Input, Conv2D, Flatten, Lambda, Reshape, Conv2DTranspose, BatchNormalization as BN, \
 	Dropout, MaxPooling2D
 from keras.models import Model
