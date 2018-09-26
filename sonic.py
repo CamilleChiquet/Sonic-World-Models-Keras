@@ -9,13 +9,11 @@ import neat
 import numpy as np
 import os
 import pickle
-import random
 import time
 import visualize
 from models.VAE import VAE
 from constants import *
 import retro
-import gc
 
 env = retro.make(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', use_restricted_actions=retro.ACTIONS_ALL,
 				 scenario='scenario')
@@ -53,47 +51,48 @@ class PooledErrorCompute(object):
 			observation = env.reset()
 			observation = np.reshape(observation, (1, observation.shape[0], observation.shape[1], observation.shape[2]))
 			latent_vector = encoder.predict(observation)[0]
-			j = 0
+			step = 0
 			best_score_step = 0
 			total_score = 0.0
 			best_score = 0.0
 			steps_without_progress = 0
-			
+
 			while 1:
-				print('step : ' + str(j))
 				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
-				if j % 4 == 0:
+				if step % 4 == 0:
 					action = np.zeros((12,), dtype=np.bool)
 					if net is not None:
 						output = net.activate(latent_vector)
+						bool_output = []
+						for value in output:
+							if value <= 0:
+								bool_output.append(False)
+							else:
+								bool_output.append(True)
 						action = np.zeros((12,), dtype=np.bool)
-						action[1] = output[Actions.JUMP]
-						action[5] = output[Actions.DOWN]
-						action[6] = output[Actions.LEFT]
-						action[7] = output[Actions.RIGHT]
+						action[1] = bool_output[Actions.JUMP]
+						action[6] = bool_output[Actions.LEFT]
+						action[7] = bool_output[Actions.RIGHT]
+						action[5] = bool_output[Actions.DOWN]
 					last_action = action
 				else:
 					action = last_action
-
 				observation, reward, done, info = env.step(action)
 				observation = np.reshape(observation, (1, observation.shape[0], observation.shape[1], observation.shape[2]))
 				latent_vector = encoder.predict(observation)[0]
 				del observation
 				total_score += reward
 				if total_score > best_score:
-					print('new best score : ' + str(total_score))
 					best_score = total_score
-					best_score_step = j
+					best_score_step = step
 					steps_without_progress = 0
 				else:
 					steps_without_progress += 1
 
-				if done or j >= MAX_STEPS or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
+				if done or step >= MAX_STEPS or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
 					break
 
-				j += 1
-
-			gc.collect()
+				step += 1
 
 			episodes_score.append(total_score)
 			genome.fitness = total_score - best_score_step
@@ -102,6 +101,7 @@ class PooledErrorCompute(object):
 
 		scores = [s for s in episodes_score]
 		score_range.append((min(scores), np.mean(scores), max(scores)))
+		print('best score : ' + max(scores))
 
 
 def run():
