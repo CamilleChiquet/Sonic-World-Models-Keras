@@ -38,6 +38,8 @@ class PooledErrorCompute(object):
 
 	def evaluate_genomes(self, genomes, config):
 		t0 = time.time()
+
+		# Création du réseau de chaque individu de la population
 		nets = []
 		for gid, g in genomes:
 			nets.append((g, neat.nn.FeedForwardNetwork.create(g, config)))
@@ -47,41 +49,58 @@ class PooledErrorCompute(object):
 		t0 = time.time()
 
 		episodes_score = []
+		indice = 0
+		# On fait jouer chaque individu à un niveau de sonic afin de les évaluer
 		for genome, net in nets:
+			indice += 1
+			print(indice)
 			observation = env.reset()
-			observation = np.reshape(observation, (1, observation.shape[0], observation.shape[1], observation.shape[2]))
-			latent_vector = encoder.predict(observation)[0]
+			latent_vector = encoder.predict(np.array([observation]))[0]
 			step = 0
+			# l'étape à laquelle l'individu à obtenu son meilleur score
 			best_score_step = 0
+			# le score final de l'individu (pas forcément le même que sont meilleur score sur la session)
 			total_score = 0.0
+			# le meilleur score de l'individu (là où il est allé le plus loin)
 			best_score = 0.0
+			# nombre d'étapes sans progression du meilleur score
 			steps_without_progress = 0
 
 			while 1:
 				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
-				# S'il s'agit d'une des trois frames où l'IA ne joue pas, elle répète tout simplement sa dernière action
 				if step % 4 == 0:
 					action = np.zeros((12,), dtype=np.bool)
+
 					if net is not None:
 						output = net.activate(latent_vector)
+
 						bool_output = []
+						# Fonction d'activation = clamped
+						# Les valeurs sont donc bornées entre -1 et 1 que l'on va convertir en False ou True
 						for value in output:
 							if value <= 0:
 								bool_output.append(False)
 							else:
 								bool_output.append(True)
+
 						action = np.zeros((12,), dtype=np.bool)
 						action[1] = bool_output[Actions.JUMP]
 						action[6] = bool_output[Actions.LEFT]
 						action[7] = bool_output[Actions.RIGHT]
 						action[5] = bool_output[Actions.DOWN]
+
 					last_action = action
+
+				# S'il s'agit d'une des trois frames où l'IA ne prend pas de décision, elle répète simplement sa dernière action
 				else:
 					action = last_action
+
 				observation, reward, done, info = env.step(action)
-				observation = np.reshape(observation, (1, observation.shape[0], observation.shape[1], observation.shape[2]))
-				latent_vector = encoder.predict(observation)[0]
+
+				latent_vector = encoder.predict(np.array([observation]))[0]
+
 				del observation
+
 				total_score += reward
 				if total_score > best_score:
 					best_score = total_score
@@ -95,8 +114,8 @@ class PooledErrorCompute(object):
 
 				step += 1
 
-			episodes_score.append(total_score)
-			genome.fitness = total_score - best_score_step
+			episodes_score.append(best_score)
+			genome.fitness = best_score - best_score_step
 
 		print("simulation run time {0}".format(time.time() - t0))
 
