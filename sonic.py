@@ -27,16 +27,14 @@ MAX_STEPS = 4500
 
 score_range = []
 
-vae = VAE()
-vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
-encoder = vae.encoder
-
-
 class PooledErrorCompute(object):
 	def __init__(self):
 		self.pool = multiprocessing.Pool()
 
 	def evaluate_genomes(self, genomes, config):
+		vae = VAE()
+		vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
+		encoder = vae.encoder
 		t0 = time.time()
 
 		# Création du réseau de chaque individu de la population
@@ -125,6 +123,9 @@ class PooledErrorCompute(object):
 
 
 def run():
+	vae = VAE()
+	vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
+	encoder = vae.encoder
 	# Load the config file, which is assumed to live in
 	# the same directory as this script.
 	local_dir = os.path.dirname(__file__)
@@ -172,12 +173,15 @@ def run():
 
 			solved = True
 			best_scores = []
-			for k in range(100):
+			# for k in range(100):
+			for k in range(1):
 				observation = env.reset()
+				latent_vector = encoder.predict(np.array([observation]))[0]
 				score = 0
-				while 1:
-					best_action = best_network.activate(observation)
+				for i in range(MAX_STEPS):
+					best_action = best_network.activate(latent_vector)
 					observation, reward, done, info = env.step(best_action)
+					latent_vector = encoder.predict(np.array([observation]))[0]
 					score += reward
 					env.render()
 					if done:
