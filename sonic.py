@@ -59,6 +59,7 @@ class PooledErrorCompute(object):
 
 			while 1:
 				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
+				# S'il s'agit d'une des trois frames où l'IA ne joue pas, elle répète tout simplement sa dernière action
 				if step % 4 == 0:
 					action = np.zeros((12,), dtype=np.bool)
 					if net is not None:
