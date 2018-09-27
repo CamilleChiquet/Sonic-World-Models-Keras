@@ -13,47 +13,45 @@ import time
 import visualize
 from models.VAE import VAE
 from constants import *
+import retrowrapper
 import retro
-
-env = retro.make(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', use_restricted_actions=retro.ACTIONS_ALL,
-				 scenario='scenario')
-
-# env = gym.wrappers.Monitor(env, 'results', force=True)
+from keras import backend as K
+import tensorflow as tf
+import threading
+import time
+from queue import Queue
 
 MIN_REWARD = 0
 MAX_REWARD = 9000
 MAX_STEPS_WITHOUT_PROGRESS = 600
 MAX_STEPS = 4500
+NB_THREADS = 8
 
 score_range = []
 
 class PooledErrorCompute(object):
 	def __init__(self):
-		self.pool = multiprocessing.Pool()
-
-	def evaluate_genomes(self, genomes, config):
 		vae = VAE()
 		vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
-		encoder = vae.encoder
-		t0 = time.time()
+		self.encoder = vae.encoder
+		rand_image = np.random.rand(1, 224, 320, 3)
+		self.encoder.predict(rand_image)		# warmup
+		self.session = K.get_session()
+		self.graph = tf.get_default_graph()
+		self.graph.finalize()
+		self.queue = Queue()
 
-		# Création du réseau de chaque individu de la population
-		nets = []
-		for gid, g in genomes:
-			nets.append((g, neat.nn.FeedForwardNetwork.create(g, config)))
-			g.fitness = []
-
-		print("network creation time {0}".format(time.time() - t0))
-		t0 = time.time()
-
-		episodes_score = []
-		indice = 0
-		# On fait jouer chaque individu à un niveau de sonic afin de les évaluer
-		for genome, net in nets:
-			indice += 1
-			print(indice)
+	# Evaluation d'un seul réseau
+	def eval_net(self):
+		env = retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1',
+						 use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
+		while True:
+			item = self.queue.get()
+			net, genome, episodes_score, net_index = item[0], item[1], item[2], item[3]
 			observation = env.reset()
-			latent_vector = encoder.predict(np.array([observation]))[0]
+			with self.session.as_default():
+				with self.graph.as_default():
+					latent_vector = self.encoder.predict(np.array([observation]))[0]
 			step = 0
 			# l'étape à laquelle l'individu à obtenu son meilleur score
 			best_score_step = 0
@@ -95,7 +93,9 @@ class PooledErrorCompute(object):
 
 				observation, reward, done, info = env.step(action)
 
-				latent_vector = encoder.predict(np.array([observation]))[0]
+				with self.session.as_default():
+					with self.graph.as_default():
+						latent_vector = self.encoder.predict(np.array([observation]))[0]
 
 				del observation
 
@@ -112,8 +112,39 @@ class PooledErrorCompute(object):
 
 				step += 1
 
-			episodes_score.append(best_score)
-			genome.fitness = best_score - best_score_step
+			# TODO : revoir les rewards
+			# score = best_score - best_score_step
+			score = best_score
+			print(score)
+			print(episodes_score)
+			episodes_score[net_index] = score
+			genome.fitness = score
+			self.queue.task_done()
+		del env
+
+	def evaluate_genomes(self, genomes, config):
+		t0 = time.time()
+
+		# Création du réseau de chaque individu de la population
+		nets = []
+		for gid, g in genomes:
+			nets.append((g, neat.nn.FeedForwardNetwork.create(g, config)))
+			g.fitness = []
+
+		print("network creation time {0}".format(time.time() - t0))
+		t0 = time.time()
+		episodes_score = np.zeros(len(nets))  # Initialisation du tableau avec des zéros
+		net_index = 0
+
+		for i in range(NB_THREADS):
+			t = threading.Thread(target=self.eval_net)
+			t.start()
+
+		for genome, net in nets:
+			self.queue.put([net, genome, episodes_score, net_index])
+			net_index += 1
+
+		self.queue.join()
 
 		print("simulation run time {0}".format(time.time() - t0))
 
@@ -123,6 +154,8 @@ class PooledErrorCompute(object):
 
 
 def run():
+	env = retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1',
+					 use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
 	vae = VAE()
 	vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
 	encoder = vae.encoder

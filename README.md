@@ -20,7 +20,7 @@
 
 ## Dépendances
 
-- tensorflow
+- tensorflow (ou tensorflow-gpu)
 - keras
 - gym-retro
 - numpy
@@ -29,6 +29,8 @@
 - pillow
 - keyboard
 - neat-python
+- graphviz
+- retrowrapper
 
 ## Avant de lancer
 
