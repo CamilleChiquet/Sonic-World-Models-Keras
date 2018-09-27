@@ -19,6 +19,8 @@ class LSTM():
 
 	def _build(self):
 		self.model = Sequential()
+		# Only one lstm layer
+		# The output needs to be the same size as the LATENT_DIM because the LSTM predict the future latent vector
 		self.model.add(layers.LSTM(units=LATENT_DIM, input_shape =self.input_shape, activation='sigmoid', kernel_initializer='random_normal'))
 		self.model.add(BatchNormalization())
 		self.model.compile(loss='mse', optimizer='adam')
@@ -41,17 +43,16 @@ class LSTM():
 		self.model.load_weights(filepath=file_path)
 
 	'''
-	On charge le LSTM entraîné afin de jouer dans l'environnement qu'il génère.
-	On lui fournit une image (latente : 128 dimensions) issue du dataset d'entraînement en entrée et il nous prédit la prochaine.
-	On lui fournit ensuite en entrée l'image (latente) prédite afin qu'il nous prédise la suivante, ainsi de suite...
-	En plus de fournir l'image (latente) on donne également les actions de l'utilisateur (touches directionnelles)
+	We load the trained model of the LSTM in order to play inside it.
+	Its output is connected to its input so it generates continuously new latent vectors.
+	The actions of the player are also given to the input layer.
 	'''
 	def play_in_dream(self, start_image, decoder):
 		latent_image = start_image
 		while True:
-			# Actions du joueur
+			# Player's actions
 			actions = [[0, 0, 0, 0]]
-			# On détecte si une des touches directionnelles est enfoncée
+			# We check wich keys are pressed
 			try:
 				if keyboard.is_pressed('up'):
 					actions[0][Actions.JUMP] = 1
@@ -72,16 +73,15 @@ class LSTM():
 				print(e)
 				break
 
-			# Il faut fournir la latent_image + le tableau d'actions au LSTM
+			# latent vector + actions are given to the input layer of the LSTM
 			lstm_input = np.concatenate((latent_image, actions), axis=1)
-			# TODO rendre le reshape dynamic
 			lstm_input = np.reshape(lstm_input, (1, 1, LATENT_DIM + NB_ACTIONS))
-			# Il nous prédit la prochaine image
+			# Futur latent vector is predicted
 			latent_image = self.model.predict(lstm_input)
-			# On affiche l'image à l'écran
+			# We pass the latent vector through the decoder to see the corresponding image
 			reconstructed_image = decoder.predict(latent_image)
 			reconstructed_image = reconstructed_image.reshape(IMG_SHAPE)
 			plt.clf()
 			plt.imshow(reconstructed_image, vmin=0, vmax=1)
-			# Nécessaire sinon rien ne s'affiche
+			# Necessary to display something on screen
 			plt.pause(0.0000001)

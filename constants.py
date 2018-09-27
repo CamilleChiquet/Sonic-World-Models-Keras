@@ -1,15 +1,15 @@
 LATENT_DIM = 128
 
-# SAUT, GAUCHE, DROITE, BAS
+# JUMP, LEFT, RIGHT, DOWN
 NB_ACTIONS = 4
 
-# (hauteur image, largeur image, rgb)
+# (image height, image width, rgb)
 IMG_SHAPE = (224, 320, 3)
 
-# Taille fixe des enregistrements pour le lstm
+# Fix recording size for the LSTM : 512 frames + actions
 SEQ_LENGTH = 512
 
-# Le jeu est à 60 fps, en prenant seulement 1/4 images on entraîne nos réseaux à jouer à 15 fps (moins de données)
+# Game runs at 60 fps, the IA plays at 15 fps (60 / 4)
 FRAME_JUMP = 4
 
 VAE_TRAINING_EXT = '.vae_train'

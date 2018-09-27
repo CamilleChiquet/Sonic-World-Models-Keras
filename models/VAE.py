@@ -26,7 +26,7 @@ class VAE():
 
 	def _build(self):
 		inputs = Input(shape=IMG_SHAPE, name='encoder_input')
-		# dimension de l'image en entrée : (224, 320, 3)
+		# Size of the image given in input : (224, 320, 3)
 		x = Conv2D(filters=32, kernel_size=4, strides=2, kernel_initializer='normal', padding='same',
 				   activation='relu')(inputs)
 		# x = Dropout(0.25)(x)
@@ -52,7 +52,7 @@ class VAE():
 		# x = Dropout(0.5)(x)
 		x = BN()(x)
 		# (7, 10, 128)
-		# On retient la shape à cet endroit pour le decoder
+		# We save the shape for the decoder part
 		shape = K.int_shape(x)
 
 		# generate latent vector Q(z|X)
@@ -107,14 +107,14 @@ class VAE():
 		outputs = decoder(encoder(inputs))
 		vae = Model(inputs, outputs, name='vae')
 
-		# Une fonction de coût classique qui permet de déterminer l'erreur entre l'image reconstituée et celle attendue
+		# A classical loss function that uses binary crossentropy
 		reconstruction_loss = IMG_SHAPE[0] * IMG_SHAPE[1] * IMG_SHAPE[2] * binary_crossentropy(K.flatten(inputs),
 																							   K.flatten(outputs))
 
-		# Fonction de coût personnalisée, utilisée pour les VAE
+		# Custom cost function
 		kl_loss = -0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
 
-		# La fonction de coût du model est la combinaison de la binary_crossentropy et de k1_loss
+		# The model's cost function is a combination of the binary_crossentropy and the custom loss function
 		vae_loss = K.mean(reconstruction_loss + kl_loss)
 		vae.add_loss(vae_loss)
 		vae.compile(optimizer='adam')
@@ -130,7 +130,7 @@ class VAE():
 	def train(self, epochs=100, batch_size=32, validation_split=0.2):
 		training_data = None
 
-		# On parcourt tous les fichiers numpy créés précédemment
+		# We load all the numpy arrays created by the user for the VAE
 		for data_file in glob.glob(os.path.join(IMG_DIR, '*' + VAE_TRAINING_EXT + '*.npy')):
 			print(data_file)
 			if training_data is None:
@@ -138,11 +138,11 @@ class VAE():
 			else:
 				training_data = np.concatenate((training_data, np.load(data_file)))
 
-		# Le tableau chargé est de type uint8, en divisant par 255 python le convertit automatiquement en float64.
-		# Pour des raisons de mémoire, je le passe en float16
+		# Loaded array is of uint8 type, dividing it by 255 automatically converts it into float64 type.
+		# For memory purposes, I convert switch to float16 type.
 		training_data = training_data.astype(np.float16) / 255
 
-		# On stoppe l'entraînement si le réseau n'a pas amélioré sa val_loss depuis les 5 dernières epochs
+		# If the network didn't improve during the last 5 epochs, we stop the training.
 		earlyStop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=5, verbose=2)
 		callbacks_list = [earlyStop]
 
@@ -206,11 +206,10 @@ class VAE():
 
 	def generate_render(self, data_path, save_path=None):
 		'''
-		Affiche le rendu visuel du passage d'images à travers le VAE
+		Display the render of the VAE given a dataset of images.
 
-		:param data_path: chemin des images à faire passer par le VAE
-		:param vae : le modèle (entraîné) du VAE
-		:param save_path: Si définit on sauvegarde les images sorties du VAE
+		:param data_path: path of the images for the VAE encoding/decoding
+		:param save_path: If not None, we save the VAE's images
 		:return:
 		'''
 		images = np.load(data_path)
@@ -220,7 +219,6 @@ class VAE():
 		for image in images:
 			img = np.reshape(image, (1, 224, 320, 3))
 			img = self.vae.predict(img)
-			# img = model.predict(np.random.rand(1,LATENT_DIM))
 			img = img.reshape(IMG_SHAPE)
 			if (save_path != None):
 				generated_images.append(img)
@@ -229,25 +227,3 @@ class VAE():
 			plt.pause(0.0000001)
 		if (save_path != None):
 			np.save(save_path, generated_images)
-
-	def compare_data(self, original_data_path, reconstructed_data_path):
-		'''
-		Compare cote à cote 2 jeux d'images
-		L'intérêt est de comparer les images originales d'une session de jeu en parrallèle de celles passées par le VAE
-
-		:param original_data_path:
-		:param reconstructed_data_path:
-		:return:
-		'''
-		origin_images = np.load(original_data_path)
-		reconstructed_images = np.load(reconstructed_data_path)
-		fig = plt.figure(figsize=(1, 2))
-		for i in range(len(origin_images)):
-			plt.clf()
-			origin_img = origin_images[i]
-			rec_img = reconstructed_images[i]
-			fig.add_subplot(1, 2, 1)
-			plt.imshow(origin_img)
-			fig.add_subplot(1, 2, 2)
-			plt.imshow(rec_img)
-			plt.pause(0.0000001)

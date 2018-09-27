@@ -30,33 +30,35 @@ class ButtonCodes:
 def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='scenario', extension_name='',
 				  frame_jump=1, save_images=True, save_actions=True, fixed_record_size=False):
 	'''
-	Permet de jouer à Sonic et d'enregistrer les images et actions de la session de jeu afin de créer des données d'entraînement
+	Play to Sonic and save the images and actions of the session in order to create data for neural networks trainings
 
-	:param game: jeu à charger
-	:param state: niveau à charger
-	:param scenario:
-	:param extension_name: extension des tableaux d'images et actions sauvegardés
-	:param frame_jump: facteur de prise d'images
-		ex :frame_jump = 1 : chaque image de la session de jeu est sauvegardée
-			frame_jump = 3 : on sauvegarde seulement une image toutes les 3 images
-			la dernière action effectuée est répétée durant les frames sautées
+	:param game: game to load
+	:param state: level to load
+	:param scenario: the scenario file
+	:param extension_name: extension's name of the image arrays and actions that will be saved
+	:param frame_jump: factor for not saving images
+		ex :frame_jump = 1 : every image of the session is saved
+			frame_jump = 3 : only 1/3 images are saved
+		The last action is repeated during the jumped frames
 	:return:
 
-	Actions possibles :
-		Controler Sonic : flèches directionnelles + Z : sauter + S : accroupir
-		R : sauvegarder session (images + actions). Le nom de la sauvegarde se termine par extension_name + un indice
-			qui s'incrément à chaque enregistrement
-		C : annuler enregistrement actuel (images + actions vidées)
-		BackSpace : remise à 0 du niveau (images + actions vidées)
+	Actions :
+		Move Sonic : Directional arrows
+		Z : Jump
+		S : Down
+		R : Save session (images + actions). The name of the save will end by extension_name + an index which is
+			incremented every save.
+		C : Cancel current recording (images + actions are cleaned)
+		BackSpace : level reset (images + actions are cleaned)
 	'''
 
-	print('\n\tBACKSPACE : début niveau'
-		  '\n\tC : annuler enregistrement en cours'
-		  '\n\tR : sauvegarder enregistrement en cours'
-		  '\n\tECHAP : FIN')
+	print('\n\tBACKSPACE : reset level'
+		  '\n\tC : Cancel current recording'
+		  '\n\tR : Save current recording'
+		  '\n\tECHAP : End')
 
 	jump = 0
-	# Chargement du jeu et niveau
+	# Level loading
 	env = retro.make(game=game, state=state, use_restricted_actions=retro.ACTIONS_ALL, scenario=scenario)
 	obs = env.reset()
 	save_index = 1
@@ -67,7 +69,6 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 	win_height = win_width * screen_height // screen_width
 	win = pyglet.window.Window(width=win_width, height=win_height, vsync=False)
 
-	# Servira a détecter les touches appuyées
 	key_handler = pyglet.window.key.KeyStateHandler()
 	win.push_handlers(key_handler)
 
@@ -88,9 +89,9 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, None)
 
-	# Tableaux d'images du jeu
+	# Array of the session's images
 	images = []
-	# Tableay d'action associé aux images
+	# Array of the session's actions
 	actions = []
 	while not win.has_exit:
 		win.dispatch_events()
@@ -109,27 +110,27 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 
 		buttons_pressed = set()
 
-		# Fin de simu
+		# End of the session
 		if keycodes.ESCAPE in keys_pressed:
 			pyglet.app.platform_event_loop.stop()
 			return
-		# Sert à réinitialiser les images et actions
+		# Reset images and actions
 		elif keycodes.C in keys_pressed:
 			print('reset record')
 			print(len(images))
 			images = []
 			actions = []
-		# Enregistrement des tableaux d'images et d'actions capturés pendant la partie
+		# Images and actions of the game session are saved
 		elif fixed_record_size and len(images) == SEQ_LENGTH + 1:
 			if save_images:
 				images = np.array(images, dtype=np.uint8)
 				np.save('./data/images/' + state + extension_name + str(save_index), images)
-				print('Images sauvegardées dans : ./data/images/' + state + extension_name + str(save_index))
+				print('Images saved at : ./data/images/' + state + extension_name + str(save_index))
 
 			if save_actions:
 				actions = np.array(actions, dtype=np.bool)
 				np.save('./data/actions/' + state + extension_name + str(save_index), actions)
-				print('Actions sauvegardées dans : ./data/actions/' + state + extension_name + str(save_index))
+				print('Actions saved at : ./data/actions/' + state + extension_name + str(save_index))
 
 			images = []
 			actions = []
@@ -138,19 +139,19 @@ def generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', s
 			if save_images and len(images) > 10:
 				images = np.array(images, dtype=np.uint8)
 				np.save('./data/images/' + state + extension_name + str(save_index), images)
-				print('Images sauvegardées dans : ./data/images/' + state + extension_name + str(save_index))
+				print('Images saved at : ./data/images/' + state + extension_name + str(save_index))
 
 			if save_actions and len(actions) > 10:
 				actions = np.array(actions, dtype=np.bool)
 				np.save('./data/actions/' + state + extension_name + str(save_index), actions)
-				print('Actions sauvegardées dans : ./data/actions/' + state + extension_name + str(save_index))
+				print('Actions saved at : ./data/actions/' + state + extension_name + str(save_index))
 
 			images = []
 			actions = []
 			save_index += 1
-		# RAZ du niveau ainsi que des images et actions enregistrées
+		# Reset of the level, actions and images
 		elif keycodes.BACKSPACE in keys_pressed:
-			print('reset level')
+			print('level reset')
 			env.reset()
 			images = []
 			actions = []
