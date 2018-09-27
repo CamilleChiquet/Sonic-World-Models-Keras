@@ -150,7 +150,7 @@ class PooledErrorCompute(object):
 
 		scores = [s for s in episodes_score]
 		score_range.append((min(scores), np.mean(scores), max(scores)))
-		print('best score : ' + max(scores))
+		print('best score : ' + str(max(scores)))
 
 
 def run():
