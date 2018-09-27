@@ -41,6 +41,7 @@ class PooledErrorCompute(object):
 		self.graph.finalize()
 		self.queue = Queue()
 		self.finished_runs = 0
+		self.workers_created = False
 
 	# Evaluation d'un seul réseau
 	def eval_net(self):
@@ -65,7 +66,7 @@ class PooledErrorCompute(object):
 
 			while 1:
 				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
-				if step % 4 == 0:
+				if step % FRAME_JUMP == 0:
 					action = np.zeros((12,), dtype=np.bool)
 
 					if net is not None:
@@ -138,9 +139,13 @@ class PooledErrorCompute(object):
 		episodes_score = np.zeros(len(nets))  # Initialisation du tableau avec des zéros
 		net_index = 0
 
-		for i in range(NB_THREADS):
-			t = threading.Thread(target=self.eval_net)
-			t.start()
+		# We create the threads only at the first generation
+		# Once created, no need to create new ones, just use those which are already created
+		if not self.workers_created:
+			for i in range(NB_THREADS):
+				t = threading.Thread(target=self.eval_net)
+				t.start()
+		self.workers_created = True
 
 		for genome, net in nets:
 			self.queue.put([net, genome, episodes_score, net_index])
@@ -161,7 +166,7 @@ def run():
 	# Load the config file, which is assumed to live in
 	# the same directory as this script.
 	local_dir = os.path.dirname(__file__)
-	config_path = os.path.join(local_dir, 'config')
+	config_path = os.path.join(local_dir, NEAT_DIR, 'config')
 	config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
 						 neat.DefaultSpeciesSet, neat.DefaultStagnation,
 						 config_path)
@@ -173,7 +178,7 @@ def run():
 	# Add a stdout reporter to show progress in the terminal.
 	pop.add_reporter(neat.StdOutReporter(True))
 	# Checkpoint every 10 generations or 900 seconds.
-	pop.add_reporter(neat.Checkpointer(1, 900))
+	pop.add_reporter(neat.Checkpointer(1, 900, filename_prefix=NEAT_DIR + '/neat-checkpoint-'))
 
 	# Run until the winner from a generation is able to solve the environment
 	# or the user interrupts the process.
@@ -182,7 +187,7 @@ def run():
 		try:
 			pop.run(ec.evaluate_genomes, 1)
 
-			visualize.plot_stats(stats, ylog=False, view=False, filename="fitness.svg")
+			visualize.plot_stats(stats, ylog=False, view=False, filename=NEAT_DIR + "/fitness.svg")
 
 			if score_range:
 				S = np.array(score_range).T
@@ -190,7 +195,7 @@ def run():
 				plt.plot(S[1], 'b-')
 				plt.plot(S[2], 'g-')
 				plt.grid()
-				plt.savefig("score-ranges.svg")
+				plt.savefig(NEAT_DIR + "/score-ranges.svg")
 				plt.close()
 
 			mfs = sum(stats.get_fitness_mean()[-5:]) / 5.0
@@ -203,32 +208,61 @@ def run():
 			best_genome = stats.best_unique_genomes(1)[0]
 			best_network = neat.nn.FeedForwardNetwork.create(best_genome, config)
 
-			solved = True
-			best_scores = []
-			# for k in range(100):
-			for k in range(1):
-				observation = env.reset()
+			solved = False
+
+			observation = env.reset()
+			with ec.session.as_default():
+				with ec.graph.as_default():
+					latent_vector = ec.encoder.predict(np.array([observation]))[0]
+
+			best_score = 0
+			total_score = 0
+			for step in range(MAX_STEPS):
+				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
+				if step % FRAME_JUMP == 0:
+					action = np.zeros((12,), dtype=np.bool)
+
+					if best_network is not None:
+						output = best_network.activate(latent_vector)
+
+						bool_output = []
+						# Fonction d'activation = clamped
+						# Les valeurs sont donc bornées entre -1 et 1 que l'on va convertir en False ou True
+						for value in output:
+							if value <= 0:
+								bool_output.append(False)
+							else:
+								bool_output.append(True)
+
+						action = np.zeros((12,), dtype=np.bool)
+						action[1] = bool_output[Actions.JUMP]
+						action[6] = bool_output[Actions.LEFT]
+						action[7] = bool_output[Actions.RIGHT]
+						action[5] = bool_output[Actions.DOWN]
+
+					last_action = action
+
+				# S'il s'agit d'une des trois frames où l'IA ne prend pas de décision, elle répète simplement sa dernière action
+				else:
+					action = last_action
+				observation, reward, done, info = env.step(action)
+				env.render()
+
 				with ec.session.as_default():
 					with ec.graph.as_default():
 						latent_vector = ec.encoder.predict(np.array([observation]))[0]
-				score = 0
-				for i in range(MAX_STEPS):
-					best_action = best_network.activate(latent_vector)
-					observation, reward, done, info = env.step(best_action)
-					with ec.session.as_default():
-						with ec.graph.as_default():
-							latent_vector = ec.encoder.predict(np.array([observation]))[0]
-					score += reward
-					env.render()
-					if done:
-						break
 
-				best_scores.append(score)
-				avg_score = sum(best_scores) / len(best_scores)
-				print(k, score, avg_score)
-				if avg_score < MAX_REWARD:
-					solved = False
+				del observation
+
+				total_score += reward
+				if total_score > best_score:
+					best_score = total_score
+
+				if done:
 					break
+
+			if best_score >= MAX_REWARD:
+				solved = True
 
 			if solved:
 				print("Solved.")
