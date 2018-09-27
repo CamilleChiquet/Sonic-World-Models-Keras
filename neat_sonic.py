@@ -40,6 +40,7 @@ class PooledErrorCompute(object):
 		self.graph = tf.get_default_graph()
 		self.graph.finalize()
 		self.queue = Queue()
+		self.finished_runs = 0
 
 	# Evaluation d'un seul réseau
 	def eval_net(self):
@@ -116,10 +117,11 @@ class PooledErrorCompute(object):
 			# score = best_score - best_score_step
 			score = best_score
 			print(score)
-			print(episodes_score)
 			episodes_score[net_index] = score
 			genome.fitness = score
 			self.queue.task_done()
+			self.finished_runs += 1
+			print('finished runs : ' + str(self.finished_runs))
 		del env
 
 	def evaluate_genomes(self, genomes, config):
@@ -156,9 +158,6 @@ class PooledErrorCompute(object):
 def run():
 	env = retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1',
 					 use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
-	vae = VAE()
-	vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
-	encoder = vae.encoder
 	# Load the config file, which is assumed to live in
 	# the same directory as this script.
 	local_dir = os.path.dirname(__file__)
@@ -174,7 +173,7 @@ def run():
 	# Add a stdout reporter to show progress in the terminal.
 	pop.add_reporter(neat.StdOutReporter(True))
 	# Checkpoint every 10 generations or 900 seconds.
-	pop.add_reporter(neat.Checkpointer(10, 900))
+	pop.add_reporter(neat.Checkpointer(1, 900))
 
 	# Run until the winner from a generation is able to solve the environment
 	# or the user interrupts the process.
@@ -209,12 +208,16 @@ def run():
 			# for k in range(100):
 			for k in range(1):
 				observation = env.reset()
-				latent_vector = encoder.predict(np.array([observation]))[0]
+				with ec.session.as_default():
+					with ec.graph.as_default():
+						latent_vector = ec.encoder.predict(np.array([observation]))[0]
 				score = 0
 				for i in range(MAX_STEPS):
 					best_action = best_network.activate(latent_vector)
 					observation, reward, done, info = env.step(best_action)
-					latent_vector = encoder.predict(np.array([observation]))[0]
+					with ec.session.as_default():
+						with ec.graph.as_default():
+							latent_vector = ec.encoder.predict(np.array([observation]))[0]
 					score += reward
 					env.render()
 					if done:
