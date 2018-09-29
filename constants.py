@@ -12,6 +12,8 @@ SEQ_LENGTH = 512
 # Game runs at 60 fps, the IA plays at 15 fps (60 / 4)
 FRAME_JUMP = 4
 
+NB_LIFES_AT_START = 3
+
 VAE_TRAINING_EXT = '.vae_train'
 RNN_TRAINING_EXT = '.rnn_train'
 RNN_TEST_EXT = '.rnn_test'

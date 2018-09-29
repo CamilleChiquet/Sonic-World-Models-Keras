@@ -1,5 +1,5 @@
 '''
-Dossiers du projet :
+Folders of the projet :
 
 |__ data
 	|__ actions
@@ -25,30 +25,30 @@ create_project_folders()
 
 '''
 	===============================================
-	0 - Juste pour jouer au jeu :D
+	0 - Just play to Sonic :D
 	===============================================
 '''
 
-# print('Entraînez-vous à jouer !')
+# print('Try to finish the level by yourself !')
 # play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1')
 
 '''
 	===============================================
-	1 - Création des données d'entrainement pour le VAE
+	1 - Generating datas for VAE
 	===============================================
 '''
 
-# print('\nGénération données VAE.')
-# Faire ~5 enregistrements (chacun suivi d'un reset du niveau avec "BACKSPACE")
+# print('\nGenerating datas for VAE.')
+# Make ~5 records (every one followed by a level reset)
 # generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=VAE_TRAINING_EXT, frame_jump=4, save_actions=False)
 
 '''
 	===============================================
-	2 - Entraînement du VAE
+	2 - VAE training
 	===============================================
 '''
 
-# print('\nEntraînement VAE.')
+# print('\nVAE training.')
 vae = VAE()
 # /!\ batch_size=32 (voir 64 ou 128) est un bon choix si la mémoire de votre carte graphique le permet, sinon choisir plus petit
 # vae.train(batch_size=32, epochs=100)
@@ -57,26 +57,24 @@ vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
 
 '''
 	===============================================
-	3 - Visualisation du VAE en action
+	3 - Visualization of the VAE
 	===============================================
 '''
 
-# print('Visualisation VAE')
+# print('VAE visualization')
 # images_array_path = IMG_DIR + '/GreenHillZone.Act1.vae_train1.npy'
 # vae.generate_render(data_path=images_array_path)
 
 '''
 	===============================================
-	4 - Génération des données d'entraînement du LSTM
-	Cet entraînement à pour but de faire apprendre au LSTM la logique/physique du jeu afin qu'il puisse prédire les
-	prochaines frames, il faut donc créer un dataset d'entraînement de qualité, c-à-d avec la plus grande variété de
-	situations possible (exemple : ne pas bouger -> le décors ne bouge plus ; bloquer contre un mur -> plus rien n'avance...)
+	4 - Generation of the LSTM's training dataset
+	This training makes the LSTM learns the logic and physic of the game in order to predict the next (latent) frame.
+	Make sure to record a lot of different situations (Sonic stuck in front of a wall, jump and move in the air...)
 	===============================================
 '''
 
-# print('\nGénération données LSTM.')
+# print('\nGenerating data for LSTM.')
 
-# Faire une dizaine d'enregistrements (5 si 8Go de RAM)
 # print("\tDonnées d'entraînement")
 # generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TRAINING_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
 # Faire 2 enregistrement (1 si 8Go de RAM)

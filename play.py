@@ -29,18 +29,16 @@ class ButtonCodes:
 
 def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='scenario', frame_jump=1):
 	'''
-	:param game: jeu à charger
-	:param state: niveau à charger
-	:param scenario:
-	:param extension_name: extension des tableaux d'images et actions sauvegardés
+	:param game: game to load
+	:param state: level to load
+	:param scenario: scenario to load
 	:return:
 	'''
 
-	print('\n\tBACKSPACE : début niveau'
-		  '\n\tECHAP : FIN')
+	print('\n\tBACKSPACE : reset the level'
+		  '\n\tECHAP : End')
 
 	jump = 0
-	# Chargement du jeu et niveau
 	env = retro.make(game=game, state=state, use_restricted_actions=retro.ACTIONS_ALL, scenario=scenario)
 	obs = env.reset()
 
@@ -49,7 +47,6 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 	win_height = win_width * screen_height // screen_width
 	win = pyglet.window.Window(width=win_width, height=win_height, vsync=False)
 
-	# Servira a détecter les touches appuyées
 	key_handler = pyglet.window.key.KeyStateHandler()
 	win.push_handlers(key_handler)
 
@@ -88,11 +85,12 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 
 		buttons_pressed = set()
 
-		# Fin de simu
+		# End of the session
 		if keycodes.ESCAPE in keys_pressed:
 			pyglet.app.platform_event_loop.stop()
 			return
-		# RAZ du niveau ainsi que des images et actions enregistrées
+
+		# Reset of the level and the recorded images and actions
 		elif keycodes.BACKSPACE in keys_pressed:
 			print('reset level')
 			env.reset()

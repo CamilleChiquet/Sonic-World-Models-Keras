@@ -1,26 +1,36 @@
-# Sonic World-Models avec Keras
+# Sonic World-Models with Keras
 
-## A FAIRE
+AI composed of 3 neural networks : a Variational Auto-Encoder, a LSTM and a controller.
+An evolutionary algorithm (NEAT) is used to "train" the controller.
+For more information about world models architecture, go take a look [here](https://worldmodels.github.io/).
 
-- Controller + NEAT
+## Before beginning
 
-## FAIT
+Copy the "scenario.json" file into the game folder (into the retro package).
+I use PyCharm and I've put it into : venv\Lib\site-packages\retro\data\SonicTheHedgehog-Genesis
+I only used this AI on the first Sonic game ("SonicTheHedgehog-Genesis").
 
-- MDN
-- LSTM
-- génération de données pour VAE
+## Todo
+
+- NEAT with LSTM's internal state
+- Fix and try to replace the LSTM with a MDN LSTM
+
+## Done
+
+- generate data for VAE
 - VAE
-- génération de données pour LSTM
+- generate data for LSTM
+- LSTM
 
-## A ESSAYER
+## To try
 
-- Wasserstein autoencoder
-- Controller + apprentissage tutoré
-- Tester du transfert learning pour les couches convolutives du VAE : prendre celles d'un réseau connu pour de la reco visuelle
+- Wasserstein autoencoder.
+- Controller + human teaching.
+- Transfert learning on the convolutive layers of the VAE : choose a famous network for visual recognition.
 
-## Dépendances
+## Dependencies
 
-- tensorflow (ou tensorflow-gpu)
+- tensorflow or tensorflow-gpu if you have a recent graphic card (recommended)
 - keras
 - gym-retro
 - numpy
@@ -29,15 +39,5 @@
 - pillow
 - keyboard
 - neat-python
-- graphviz
+- graphviz (you need to install it on your computer, for windows don't forget to add it to your PATH)
 - retrowrapper
-
-## Avant de lancer
-
-Copier le fichier "scenario.json" dans le dossier sonic au sein du package retro.
-Pour mon cas (j'utilise Pycharm) je le copie dans : venv\Lib\site-packages\retro\data\SonicTheHedgehog-Genesis
-
-## Liens utiles
-
-- [World Models](https://worldmodels.github.io/)
-- [Résultats de concours sur Sonic](https://blog.openai.com/first-retro-contest-retrospective/)

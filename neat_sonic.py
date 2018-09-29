@@ -29,13 +29,14 @@ NB_THREADS = 8
 
 score_range = []
 
+
 class PooledErrorCompute(object):
 	def __init__(self):
 		vae = VAE()
 		vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
 		self.encoder = vae.encoder
 		rand_image = np.random.rand(1, 224, 320, 3)
-		self.encoder.predict(rand_image)		# warmup
+		self.encoder.predict(rand_image)  # warmup
 		self.session = K.get_session()
 		self.graph = tf.get_default_graph()
 		self.graph.finalize()
@@ -43,10 +44,10 @@ class PooledErrorCompute(object):
 		self.finished_runs = 0
 		self.workers_created = False
 
-	# Evaluation d'un seul réseau
+	# Evaluates the fitness of one network
 	def eval_net(self):
 		env = retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1',
-						 use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
+										use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
 		while True:
 			item = self.queue.get()
 			net, genome, episodes_score, net_index = item[0], item[1], item[2], item[3]
@@ -54,18 +55,18 @@ class PooledErrorCompute(object):
 			with self.session.as_default():
 				with self.graph.as_default():
 					latent_vector = self.encoder.predict(np.array([observation]))[0]
-			step = 0
-			# l'étape à laquelle l'individu à obtenu son meilleur score
+
+			# The step where the network did its best score
 			best_score_step = 0
-			# le score final de l'individu (pas forcément le même que sont meilleur score sur la session)
+			# The final score of the network (not necessary the best)
 			total_score = 0.0
-			# le meilleur score de l'individu (là où il est allé le plus loin)
+			# The network's best score
 			best_score = 0.0
-			# nombre d'étapes sans progression du meilleur score
+			# Number of steps without progression since the bestcore's step
 			steps_without_progress = 0
 
-			while 1:
-				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
+			for step in range(MAX_STEPS):
+				# Game runs at 60 fps or the AI plays at 15 fps (every 4 frame)
 				if step % FRAME_JUMP == 0:
 					action = np.zeros((12,), dtype=np.bool)
 
@@ -73,8 +74,8 @@ class PooledErrorCompute(object):
 						output = net.activate(latent_vector)
 
 						bool_output = []
-						# Fonction d'activation = clamped
-						# Les valeurs sont donc bornées entre -1 et 1 que l'on va convertir en False ou True
+						# Activation function = clamped.
+						# Output goes from -1 to 1, which we'll convert into a boolean value
 						for value in output:
 							if value <= 0:
 								bool_output.append(False)
@@ -89,11 +90,14 @@ class PooledErrorCompute(object):
 
 					last_action = action
 
-				# S'il s'agit d'une des trois frames où l'IA ne prend pas de décision, elle répète simplement sa dernière action
+				# If it is a frame where the AI doesn't play, we repeat the last action
 				else:
 					action = last_action
 
 				observation, reward, done, info = env.step(action)
+
+				if info['lives'] < NB_LIFES_AT_START or done or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
+					break
 
 				with self.session.as_default():
 					with self.graph.as_default():
@@ -109,26 +113,22 @@ class PooledErrorCompute(object):
 				else:
 					steps_without_progress += 1
 
-				if done or step >= MAX_STEPS or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
-					break
-
-				step += 1
-
-			# TODO : revoir les rewards
+			# TODO : modify the final score
 			# score = best_score - best_score_step
 			score = best_score
-			print(score)
 			episodes_score[net_index] = score
 			genome.fitness = score
 			self.queue.task_done()
 			self.finished_runs += 1
-			print('finished runs : ' + str(self.finished_runs))
+			print('run ' + str(self.finished_runs) + ' score : ' + str(score))
+		env.close()
 		del env
 
 	def evaluate_genomes(self, genomes, config):
 		t0 = time.time()
+		self.finished_runs = 0
 
-		# Création du réseau de chaque individu de la population
+		# Creation of the population's networks
 		nets = []
 		for gid, g in genomes:
 			nets.append((g, neat.nn.FeedForwardNetwork.create(g, config)))
@@ -136,7 +136,7 @@ class PooledErrorCompute(object):
 
 		print("network creation time {0}".format(time.time() - t0))
 		t0 = time.time()
-		episodes_score = np.zeros(len(nets))  # Initialisation du tableau avec des zéros
+		episodes_score = np.zeros(len(nets))  # Array initialization with zeros
 		net_index = 0
 
 		# We create the threads only at the first generation
@@ -160,9 +160,9 @@ class PooledErrorCompute(object):
 		print('best score : ' + str(max(scores)))
 
 
-def run():
+def run_neat(checkpoint=None):
 	env = retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1',
-					 use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
+									use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
 	# Load the config file, which is assumed to live in
 	# the same directory as this script.
 	local_dir = os.path.dirname(__file__)
@@ -171,15 +171,18 @@ def run():
 						 neat.DefaultSpeciesSet, neat.DefaultStagnation,
 						 config_path)
 
-	# Create the population, which is the top-level object for a NEAT run.
-	pop = neat.Population(config)
+	if checkpoint != None:
+		pop = neat.Checkpointer.restore_checkpoint(checkpoint)
+	else:
+		# Create the population, which is the top-level object for a NEAT run.
+		pop = neat.Population(config)
+
+	# Checkpoint every generation or 900 seconds.
+	pop.add_reporter(neat.Checkpointer(1, 900, filename_prefix=NEAT_DIR + '/neat-checkpoint-'))
 	stats = neat.StatisticsReporter()
 	pop.add_reporter(stats)
 	# Add a stdout reporter to show progress in the terminal.
 	pop.add_reporter(neat.StdOutReporter(True))
-	# Checkpoint every 10 generations or 900 seconds.
-	pop.add_reporter(neat.Checkpointer(1, 900, filename_prefix=NEAT_DIR + '/neat-checkpoint-'))
-
 	# Run until the winner from a generation is able to solve the environment
 	# or the user interrupts the process.
 	ec = PooledErrorCompute()
@@ -188,15 +191,6 @@ def run():
 			pop.run(ec.evaluate_genomes, 1)
 
 			visualize.plot_stats(stats, ylog=False, view=False, filename=NEAT_DIR + "/fitness.svg")
-
-			if score_range:
-				S = np.array(score_range).T
-				plt.plot(S[0], 'r-')
-				plt.plot(S[1], 'b-')
-				plt.plot(S[2], 'g-')
-				plt.grid()
-				plt.savefig(NEAT_DIR + "/score-ranges.svg")
-				plt.close()
 
 			mfs = sum(stats.get_fitness_mean()[-5:]) / 5.0
 			print("Average mean fitness over last 5 generations: {0}".format(mfs))
@@ -217,8 +211,9 @@ def run():
 
 			best_score = 0
 			total_score = 0
+			steps_without_progress = 0
 			for step in range(MAX_STEPS):
-				# Le jeu est en 60 fps : on ne fait jouer l'IA qu'en 15 fps (toutes les 4 frames)
+				# Game runs at 60 fps or the AI plays at 15 fps (every 4 frame)
 				if step % FRAME_JUMP == 0:
 					action = np.zeros((12,), dtype=np.bool)
 
@@ -226,8 +221,8 @@ def run():
 						output = best_network.activate(latent_vector)
 
 						bool_output = []
-						# Fonction d'activation = clamped
-						# Les valeurs sont donc bornées entre -1 et 1 que l'on va convertir en False ou True
+						# Activation function = clamped.
+						# Output goes from -1 to 1, which we'll convert into a boolean value
 						for value in output:
 							if value <= 0:
 								bool_output.append(False)
@@ -242,11 +237,15 @@ def run():
 
 					last_action = action
 
-				# S'il s'agit d'une des trois frames où l'IA ne prend pas de décision, elle répète simplement sa dernière action
+				# If it is a frame where the AI doesn't play, we repeat the last action
 				else:
 					action = last_action
 				observation, reward, done, info = env.step(action)
 				env.render()
+				step += 1
+
+				if info['lives'] < NB_LIFES_AT_START or done or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
+					break
 
 				with ec.session.as_default():
 					with ec.graph.as_default():
@@ -257,9 +256,9 @@ def run():
 				total_score += reward
 				if total_score > best_score:
 					best_score = total_score
-
-				if done:
-					break
+					steps_without_progress = 0
+				else:
+					steps_without_progress += 1
 
 			if best_score >= MAX_REWARD:
 				solved = True
@@ -267,18 +266,18 @@ def run():
 			if solved:
 				print("Solved.")
 
-				# Save the winners.
-				for n, g in best_genome:
-					name = 'winner-{0}'.format(n)
-					with open(name + '.pickle', 'wb') as f:
-						pickle.dump(g, f)
+				# Save the winner
+				name = NEAT_DIR + '/winner'
+				with open(name + '.pickle', 'wb') as f:
+					pickle.dump(best_genome, f)
 
-					visualize.draw_net(config, g, view=False, filename=name + "-net.gv")
-					visualize.draw_net(config, g, view=False, filename="-net-enabled.gv", show_disabled=False)
-					visualize.draw_net(config, g, view=False, filename="-net-enabled-pruned.gv",
-									   show_disabled=False, prune_unused=True)
+				visualize.draw_net(config, best_genome, view=False, filename=name + "-net.gv")
+				visualize.draw_net(config, best_genome, view=False, filename="-net-enabled.gv", show_disabled=False)
+				visualize.draw_net(config, best_genome, view=False, filename="-net-enabled-pruned.gv",
+								   show_disabled=False, prune_unused=True)
 
 				break
+
 		except KeyboardInterrupt:
 			print("User break.")
 			break
@@ -287,4 +286,5 @@ def run():
 
 
 if __name__ == '__main__':
-	run()
+	# run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-22')
+	run_neat()
