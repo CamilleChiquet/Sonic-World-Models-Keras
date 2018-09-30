@@ -212,7 +212,7 @@ class VAE():
 		:param save_path: If not None, we save the VAE's images
 		:return:
 		'''
-		images = np.load(data_path)
+		images = np.load(data_path).astype(np.float16)
 		images = images / 255
 
 		generated_images = []

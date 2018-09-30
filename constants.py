@@ -25,6 +25,12 @@ LATENT_IMG_DIR = DATA_DIR + '/latent_images'
 NEAT_DIR = DATA_DIR + '/neat'
 SAVED_MODELS_DIR = './saved_models'
 
+# LEVELS = ['GreenHillZone.Act1', 'GreenHillZone.Act2', 'SpringYardZone.Act1', 'SpringYardZone.Act2']
+# LEVELS_END = [9450, 7950, 9000, 10500]
+LEVELS = ['GreenHillZone.Act1', 'GreenHillZone.Act2']
+LEVELS_END = [9450, 7950]
+
+
 class Actions:
 	JUMP = 0
 	LEFT = 1

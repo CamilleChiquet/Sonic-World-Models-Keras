@@ -19,6 +19,7 @@ from models.MDN_LSTM import MDN_LSTM
 from models.VAE import VAE
 from play import play
 from process import create_project_folders
+import neat_sonic
 
 
 create_project_folders()
@@ -29,7 +30,7 @@ create_project_folders()
 	===============================================
 '''
 
-# print('Try to finish the level by yourself !')
+# print('Try to finish a level by yourself !')
 # play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1')
 
 '''
@@ -40,7 +41,8 @@ create_project_folders()
 
 # print('\nGenerating datas for VAE.')
 # Make ~5 records (every one followed by a level reset)
-# generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=VAE_TRAINING_EXT, frame_jump=4, save_actions=False)
+# for level in LEVELS:
+# 	generate_data(game='SonicTheHedgehog-Genesis', state=level, extension_name=VAE_TRAINING_EXT, frame_jump=4, save_actions=False)
 
 '''
 	===============================================
@@ -48,12 +50,12 @@ create_project_folders()
 	===============================================
 '''
 
+# vae = VAE()
+# /!\ If the memory of your graphic card is too low, you can choose a smaller batch_size
 # print('\nVAE training.')
-vae = VAE()
-# /!\ batch_size=32 (voir 64 ou 128) est un bon choix si la mémoire de votre carte graphique le permet, sinon choisir plus petit
-# vae.train(batch_size=32, epochs=100)
-# vae.save_weights(SAVED_MODELS_DIR + '/VAE.h5')
-vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
+# vae.train(batch_size=32, epochs=200)
+# vae.save_weights(SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
+# vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
 
 '''
 	===============================================
@@ -62,7 +64,7 @@ vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
 '''
 
 # print('VAE visualization')
-# images_array_path = IMG_DIR + '/GreenHillZone.Act1.vae_train1.npy'
+# images_array_path = IMG_DIR + '/GreenHillZone.Act2.vae_train1.npy'
 # vae.generate_render(data_path=images_array_path)
 
 '''
@@ -75,31 +77,31 @@ vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
 
 # print('\nGenerating data for LSTM.')
 
-# print("\tDonnées d'entraînement")
-# generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TRAINING_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
-# Faire 2 enregistrement (1 si 8Go de RAM)
-# print("\tDonnées de validation")
-# generate_data(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', extension_name=RNN_TEST_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
+# for level in LEVELS:
+# 	print("\tDonnées d'entraînement")
+# 	generate_data(state=level, extension_name=RNN_TRAINING_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
+# 	print("\tDonnées de validation")
+# 	generate_data(state=level, extension_name=RNN_TEST_EXT, frame_jump=FRAME_JUMP, fixed_record_size=True)
 
 # X_train_rnn, Y_train_rnn, X_test_rnn, Y_test_rnn = vae.generate_latent_images()
-#
-# np.save(DATA_DIR + '/X_train_rnn', X_train_rnn)
-# np.save(DATA_DIR + '/X_test_rnn', X_test_rnn)
-# np.save(DATA_DIR + '/Y_train_rnn', Y_train_rnn)
-# np.save(DATA_DIR + '/Y_test_rnn', Y_test_rnn)
 
-X_train_rnn = np.load(DATA_DIR + '/X_train_rnn.npy')
-X_test_rnn = np.load(DATA_DIR + '/X_test_rnn.npy')
-Y_train_rnn = np.load(DATA_DIR + '/Y_train_rnn.npy')
-Y_test_rnn = np.load(DATA_DIR + '/Y_test_rnn.npy')
+# np.save(DATA_DIR + '/X_train_rnn_GreenHillZone', X_train_rnn)
+# np.save(DATA_DIR + '/X_test_rnn_GreenHillZone', X_test_rnn)
+# np.save(DATA_DIR + '/Y_train_rnn_GreenHillZone', Y_train_rnn)
+# np.save(DATA_DIR + '/Y_test_rnn_GreenHillZone', Y_test_rnn)
+
+# X_train_rnn = np.load(DATA_DIR + '/X_train_rnn_GreenHillZone.npy')
+# X_test_rnn = np.load(DATA_DIR + '/X_test_rnn_GreenHillZone.npy')
+# Y_train_rnn = np.load(DATA_DIR + '/Y_train_rnn_GreenHillZone.npy')
+# Y_test_rnn = np.load(DATA_DIR + '/Y_test_rnn_GreenHillZone.npy')
 
 # nb_training_sequences = int(X_train_rnn.shape[0] / SEQ_LENGTH)
 # nb_validation_sequences = int(X_test_rnn.shape[0] / SEQ_LENGTH)
 
-X_train_rnn = np.reshape(X_train_rnn, (X_train_rnn.shape[0], 1, X_train_rnn.shape[1]))
-X_test_rnn = np.reshape(X_test_rnn, (X_test_rnn.shape[0], 1, X_test_rnn.shape[1]))
-Y_train_rnn = np.reshape(Y_train_rnn, (Y_train_rnn.shape[0], Y_train_rnn.shape[1]))
-Y_test_rnn = np.reshape(Y_test_rnn, (Y_test_rnn.shape[0], Y_test_rnn.shape[1]))
+# X_train_rnn = np.reshape(X_train_rnn, (X_train_rnn.shape[0], 1, X_train_rnn.shape[1]))
+# X_test_rnn = np.reshape(X_test_rnn, (X_test_rnn.shape[0], 1, X_test_rnn.shape[1]))
+# Y_train_rnn = np.reshape(Y_train_rnn, (Y_train_rnn.shape[0], Y_train_rnn.shape[1]))
+# Y_test_rnn = np.reshape(Y_test_rnn, (Y_test_rnn.shape[0], Y_test_rnn.shape[1]))
 
 '''
 	===============================================
@@ -107,12 +109,12 @@ Y_test_rnn = np.reshape(Y_test_rnn, (Y_test_rnn.shape[0], Y_test_rnn.shape[1]))
 	===============================================
 '''
 
-print('\nEntraînement LSTM.')
+# print('\nEntraînement LSTM.')
 
-lstm = LSTM()
-lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, X_test=X_test_rnn, Y_test=Y_test_rnn, epochs=200)
-lstm.save_weights(SAVED_MODELS_DIR + '/LSTM.h5')
-# lstm.load_weights(SAVED_MODELS_DIR + '/LSTM.h5')
+# lstm = LSTM()
+# lstm.train(X_train=X_train_rnn, Y_train=Y_train_rnn, X_test=X_test_rnn, Y_test=Y_test_rnn, epochs=200)
+# lstm.save_weights(SAVED_MODELS_DIR + '/LSTM_GreenHillZone.h5')
+# lstm.load_weights(SAVED_MODELS_DIR + '/LSTM_GreenHillZone.h5')
 
 '''
 	===============================================
@@ -134,10 +136,8 @@ lstm.save_weights(SAVED_MODELS_DIR + '/LSTM.h5')
 	===============================================
 '''
 
-del X_train_rnn, X_test_rnn, Y_train_rnn, Y_test_rnn
-print('\nJouez dans un niveau rêvé par le LSTM !')
+# print("\nYou are playing inside LSTM's dream !")
 
-# Le LSTM commence à partir d'une image latente générée aléatoirement
-latent_image = [np.random.rand(LATENT_DIM)]
-# Choisir entre "lstm" et "mdn_lstm" suivant le choix en 5)
-lstm.play_in_dream(start_image=latent_image, decoder=vae.decoder)
+# The LSTM begin from a random latent image
+# latent_image = [np.random.rand(LATENT_DIM)]
+# lstm.play_in_dream(start_image=latent_image, decoder=vae.decoder)

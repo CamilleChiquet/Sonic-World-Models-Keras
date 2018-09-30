@@ -20,17 +20,104 @@ import tensorflow as tf
 import threading
 import time
 from queue import Queue
+import math
 
 MIN_REWARD = 0
-MAX_REWARD = 9000
+
+levels_distances = 0
+for end in LEVELS_END:
+	levels_distances += end
+
 MAX_STEPS_WITHOUT_PROGRESS = 600
 MAX_STEPS = 4500
 NB_THREADS = 8
 
 score_range = []
 
+def compute_fitness(distance, step):
+	if step <= 1:
+		return 0
+	return distance / math.log10(step)
 
-class PooledErrorCompute(object):
+# I played to the 2 levels and it took me about 35s and 38s to finish them
+number_steps_to_beat = 35*60 + 38*60
+REWARD_THRESHOLD = compute_fitness(levels_distances, number_steps_to_beat)
+print('fitness threshold : ' + str(REWARD_THRESHOLD))
+
+def run_net_in_env(env, session, graph, encoder, net, render=False):
+	observation = env.reset()
+	with session.as_default():
+		with graph.as_default():
+			latent_vector = encoder.predict(np.array([observation]))[0]
+
+	# The final score of the network (not necessary the best)
+	cumulative_reward = 0.0
+	# The network's best score
+	best_score = 0.0
+	# Number of steps without progression since the bestcore's step
+	steps_without_progress = 0
+
+	for step in range(MAX_STEPS):
+		# Game runs at 60 fps or the AI plays at 15 fps (every 4 frame)
+		if step % FRAME_JUMP == 0:
+			action = np.zeros((12,), dtype=np.bool)
+
+			if net is not None:
+				output = net.activate(latent_vector)
+
+				bool_output = []
+
+				# Activation function = clamped.
+				# Output goes from -1 to 1, which we'll convert into a boolean value
+				for value in output:
+					if value <= 0:
+						bool_output.append(False)
+					else:
+						bool_output.append(True)
+
+				action = np.zeros((12,), dtype=np.bool)
+				action[1] = bool_output[Actions.JUMP]
+				action[6] = bool_output[Actions.LEFT]
+				action[7] = bool_output[Actions.RIGHT]
+				action[5] = bool_output[Actions.DOWN]
+
+			last_action = action
+
+		# If it is a frame where the AI doesn't play, we repeat the last action
+		else:
+			action = last_action
+
+		# If you use the scenario.json of this project, reward represents the distance Sonic traveled since the last step
+		# So, positive if he goes right and negative in the left direction
+		observation, reward, done, info = env.step(action)
+		if render:
+			env.render()
+
+		if info['lives'] < NB_LIFES_AT_START or done or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
+			break
+
+		if step % FRAME_JUMP == 0:
+			with session.as_default():
+				with graph.as_default():
+					latent_vector = encoder.predict(np.array([observation]))[0]
+
+		del observation
+
+		cumulative_reward += reward
+
+		# The score depends of the farthest sonic went AND the time he took to get there.
+		# But in my opinion distance is most important than the time, that's why I choose to use log10.
+		# Feel free to modify the way you compute the reward.
+		current_score = compute_fitness(cumulative_reward, step)
+		if current_score > best_score:
+			best_score = current_score
+			steps_without_progress = 0
+		else:
+			steps_without_progress += 1
+
+	return best_score
+
+class PopulationEvaluator(object):
 	def __init__(self):
 		vae = VAE()
 		vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
@@ -46,83 +133,23 @@ class PooledErrorCompute(object):
 
 	# Evaluates the fitness of one network
 	def eval_net(self):
-		env = retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1',
-										use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
+		envs = []
+		for level in LEVELS:
+			envs.append(retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state=level,
+										use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario'))
 		while True:
 			item = self.queue.get()
-			net, genome, episodes_score, net_index = item[0], item[1], item[2], item[3]
-			observation = env.reset()
-			with self.session.as_default():
-				with self.graph.as_default():
-					latent_vector = self.encoder.predict(np.array([observation]))[0]
+			net, genome, generation_scores, net_index = item[0], item[1], item[2], item[3]
+			generation_scores[net_index] = 0
 
-			# The step where the network did its best score
-			best_score_step = 0
-			# The final score of the network (not necessary the best)
-			total_score = 0.0
-			# The network's best score
-			best_score = 0.0
-			# Number of steps without progression since the bestcore's step
-			steps_without_progress = 0
+			for env in envs:
+				best_env_score = run_net_in_env(env, self.session, self.graph, self.encoder, net)
+				generation_scores[net_index] += best_env_score
 
-			for step in range(MAX_STEPS):
-				# Game runs at 60 fps or the AI plays at 15 fps (every 4 frame)
-				if step % FRAME_JUMP == 0:
-					action = np.zeros((12,), dtype=np.bool)
-
-					if net is not None:
-						output = net.activate(latent_vector)
-
-						bool_output = []
-						# Activation function = clamped.
-						# Output goes from -1 to 1, which we'll convert into a boolean value
-						for value in output:
-							if value <= 0:
-								bool_output.append(False)
-							else:
-								bool_output.append(True)
-
-						action = np.zeros((12,), dtype=np.bool)
-						action[1] = bool_output[Actions.JUMP]
-						action[6] = bool_output[Actions.LEFT]
-						action[7] = bool_output[Actions.RIGHT]
-						action[5] = bool_output[Actions.DOWN]
-
-					last_action = action
-
-				# If it is a frame where the AI doesn't play, we repeat the last action
-				else:
-					action = last_action
-
-				observation, reward, done, info = env.step(action)
-
-				if info['lives'] < NB_LIFES_AT_START or done or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
-					break
-
-				with self.session.as_default():
-					with self.graph.as_default():
-						latent_vector = self.encoder.predict(np.array([observation]))[0]
-
-				del observation
-
-				total_score += reward
-				if total_score > best_score:
-					best_score = total_score
-					best_score_step = step
-					steps_without_progress = 0
-				else:
-					steps_without_progress += 1
-
-			# TODO : modify the final score
-			# score = best_score - best_score_step
-			score = best_score
-			episodes_score[net_index] = score
-			genome.fitness = score
-			self.queue.task_done()
+			genome.fitness = generation_scores[net_index]
 			self.finished_runs += 1
-			print('run ' + str(self.finished_runs) + ' score : ' + str(score))
-		env.close()
-		del env
+			print('run ' + str(self.finished_runs) + ' fitness : ' + str(genome.fitness))
+			self.queue.task_done()
 
 	def evaluate_genomes(self, genomes, config):
 		t0 = time.time()
@@ -136,7 +163,7 @@ class PooledErrorCompute(object):
 
 		print("network creation time {0}".format(time.time() - t0))
 		t0 = time.time()
-		episodes_score = np.zeros(len(nets))  # Array initialization with zeros
+		generation_scores = np.zeros(len(nets))  # Array initialization with zeros
 		net_index = 0
 
 		# We create the threads only at the first generation
@@ -148,21 +175,23 @@ class PooledErrorCompute(object):
 		self.workers_created = True
 
 		for genome, net in nets:
-			self.queue.put([net, genome, episodes_score, net_index])
+			self.queue.put([net, genome, generation_scores, net_index])
 			net_index += 1
 
 		self.queue.join()
 
 		print("simulation run time {0}".format(time.time() - t0))
 
-		scores = [s for s in episodes_score]
+		scores = [s for s in generation_scores]
 		score_range.append((min(scores), np.mean(scores), max(scores)))
 		print('best score : ' + str(max(scores)))
 
 
 def run_neat(checkpoint=None):
-	env = retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1',
-									use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario')
+	envs = []
+	for level in LEVELS:
+		envs.append(retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state=level,
+									use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario'))
 	# Load the config file, which is assumed to live in
 	# the same directory as this script.
 	local_dir = os.path.dirname(__file__)
@@ -171,7 +200,7 @@ def run_neat(checkpoint=None):
 						 neat.DefaultSpeciesSet, neat.DefaultStagnation,
 						 config_path)
 
-	if checkpoint != None:
+	if checkpoint is not None:
 		pop = neat.Checkpointer.restore_checkpoint(checkpoint)
 	else:
 		# Create the population, which is the top-level object for a NEAT run.
@@ -185,10 +214,10 @@ def run_neat(checkpoint=None):
 	pop.add_reporter(neat.StdOutReporter(True))
 	# Run until the winner from a generation is able to solve the environment
 	# or the user interrupts the process.
-	ec = PooledErrorCompute()
+	popEvaluator = PopulationEvaluator()
 	while 1:
 		try:
-			pop.run(ec.evaluate_genomes, 1)
+			pop.run(popEvaluator.evaluate_genomes, 1)
 
 			visualize.plot_stats(stats, ylog=False, view=False, filename=NEAT_DIR + "/fitness.svg")
 
@@ -203,64 +232,12 @@ def run_neat(checkpoint=None):
 			best_network = neat.nn.FeedForwardNetwork.create(best_genome, config)
 
 			solved = False
-
-			observation = env.reset()
-			with ec.session.as_default():
-				with ec.graph.as_default():
-					latent_vector = ec.encoder.predict(np.array([observation]))[0]
-
-			best_score = 0
 			total_score = 0
-			steps_without_progress = 0
-			for step in range(MAX_STEPS):
-				# Game runs at 60 fps or the AI plays at 15 fps (every 4 frame)
-				if step % FRAME_JUMP == 0:
-					action = np.zeros((12,), dtype=np.bool)
+			for env in envs:
+				best_score = run_net_in_env(env, popEvaluator.session, popEvaluator.graph, popEvaluator.encoder, best_network, render=True)
+				total_score += best_score
 
-					if best_network is not None:
-						output = best_network.activate(latent_vector)
-
-						bool_output = []
-						# Activation function = clamped.
-						# Output goes from -1 to 1, which we'll convert into a boolean value
-						for value in output:
-							if value <= 0:
-								bool_output.append(False)
-							else:
-								bool_output.append(True)
-
-						action = np.zeros((12,), dtype=np.bool)
-						action[1] = bool_output[Actions.JUMP]
-						action[6] = bool_output[Actions.LEFT]
-						action[7] = bool_output[Actions.RIGHT]
-						action[5] = bool_output[Actions.DOWN]
-
-					last_action = action
-
-				# If it is a frame where the AI doesn't play, we repeat the last action
-				else:
-					action = last_action
-				observation, reward, done, info = env.step(action)
-				env.render()
-				step += 1
-
-				if info['lives'] < NB_LIFES_AT_START or done or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
-					break
-
-				with ec.session.as_default():
-					with ec.graph.as_default():
-						latent_vector = ec.encoder.predict(np.array([observation]))[0]
-
-				del observation
-
-				total_score += reward
-				if total_score > best_score:
-					best_score = total_score
-					steps_without_progress = 0
-				else:
-					steps_without_progress += 1
-
-			if best_score >= MAX_REWARD:
+			if total_score >= REWARD_THRESHOLD:
 				solved = True
 
 			if solved:
@@ -286,5 +263,5 @@ def run_neat(checkpoint=None):
 
 
 if __name__ == '__main__':
-	# run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-22')
-	run_neat()
+	run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-1')
+	# run_neat()
