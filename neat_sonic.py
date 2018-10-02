@@ -35,8 +35,8 @@ NB_THREADS = 8
 score_range = []
 
 def compute_fitness(distance, step):
-	if step <= 1:
-		return 0
+	if step < 10:
+		return distance
 	return distance / math.log10(step)
 
 # I played to the 2 levels and it took me about 35s and 38s to finish them
@@ -120,7 +120,7 @@ def run_net_in_env(env, session, graph, encoder, net, render=False):
 class PopulationEvaluator(object):
 	def __init__(self):
 		vae = VAE()
-		vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE.h5')
+		vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
 		self.encoder = vae.encoder
 		rand_image = np.random.rand(1, 224, 320, 3)
 		self.encoder.predict(rand_image)  # warmup
@@ -263,5 +263,5 @@ def run_neat(checkpoint=None):
 
 
 if __name__ == '__main__':
-	run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-1')
-	# run_neat()
+	# run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-31')
+	run_neat()
