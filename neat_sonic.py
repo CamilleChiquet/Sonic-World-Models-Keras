@@ -237,7 +237,7 @@ def run_neat(checkpoint=None):
 				best_score = run_net_in_env(env, popEvaluator.session, popEvaluator.graph, popEvaluator.encoder, best_network, render=True)
 				total_score += best_score
 
-			visualize.draw_net(config, best_genome, view=False, filename="gen-" +str(pop.generation) + "-net", show_disabled=False)
+			visualize.draw_net(config, best_genome, view=False, filename=NEAT_DIR + "/gen-" +str(pop.generation) + "-net", show_disabled=False)
 
 			if total_score >= REWARD_THRESHOLD:
 				solved = True
@@ -261,5 +261,5 @@ def run_neat(checkpoint=None):
 
 
 if __name__ == '__main__':
-	# run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint')
-	run_neat()
+	run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-5')
+	# run_neat()
