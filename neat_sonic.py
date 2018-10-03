@@ -42,6 +42,7 @@ def compute_fitness(distance, step):
 # I played to the 2 levels and it took me about 35s and 38s to finish them
 number_steps_to_beat = 35*60 + 38*60
 REWARD_THRESHOLD = compute_fitness(levels_distances, number_steps_to_beat)
+# REWARD_THRESHOLD = compute_fitness(9450, 35*60)
 print('fitness threshold : ' + str(REWARD_THRESHOLD))
 
 def run_net_in_env(env, session, graph, encoder, net, render=False):
@@ -96,7 +97,7 @@ def run_net_in_env(env, session, graph, encoder, net, render=False):
 		if info['lives'] < NB_LIFES_AT_START or done or steps_without_progress >= MAX_STEPS_WITHOUT_PROGRESS:
 			break
 
-		if step % FRAME_JUMP == 0:
+		if (step - 1) % FRAME_JUMP == 0:
 			with session.as_default():
 				with graph.as_default():
 					latent_vector = encoder.predict(np.array([observation]))[0]
@@ -242,6 +243,8 @@ def run_neat(checkpoint=None):
 			if total_score >= REWARD_THRESHOLD:
 				solved = True
 
+			print('best : ' + str(total_score))
+
 			if solved:
 				print("Solved.")
 
@@ -259,7 +262,36 @@ def run_neat(checkpoint=None):
 
 	env.close()
 
+def run_network(file_name):
+	envs = []
+	for level in LEVELS:
+		envs.append(retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state=level,
+									use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario'))
+
+	vae = VAE()
+	vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
+	encoder = vae.encoder
+	rand_image = np.random.rand(1, 224, 320, 3)
+	encoder.predict(rand_image)  # warmup
+	session = K.get_session()
+	graph = tf.get_default_graph()
+	graph.finalize()
+
+	local_dir = os.path.dirname(__file__)
+	config_path = os.path.join(local_dir, NEAT_DIR, 'config')
+	config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+						 neat.DefaultSpeciesSet, neat.DefaultStagnation,
+						 config_path)
+
+	with open(file_name, 'rb') as f:
+		best_genome = pickle.load(f)
+
+	best_network = neat.nn.FeedForwardNetwork.create(best_genome, config)
+
+	for env in envs:
+		run_net_in_env(env, session, graph, encoder, best_network, render=True)
 
 if __name__ == '__main__':
-	run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-5')
-	# run_neat()
+	# run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-131')
+	run_neat()
+	# run_network(NEAT_DIR + '/winner.pickle')
