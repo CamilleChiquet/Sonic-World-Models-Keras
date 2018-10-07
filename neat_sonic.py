@@ -2,6 +2,12 @@
 # LunarLander-v2 environment (https://gym.openai.com/envs/LunarLander-v2).
 # Sample run here: https://gym.openai.com/evaluations/eval_FbKq5MxAS9GlvB7W6ioJkg
 # NOTE: This was run using revision 1186029827c156e0ff6f9b36d6847eb2aa56757a of CodeReclaimers/neat-python, not a release on PyPI.
+
+# For reproducible results
+from numpy.random import seed
+seed(42)
+from tensorflow import set_random_seed
+set_random_seed(42)
 import gym
 import matplotlib.pyplot as plt
 import multiprocessing

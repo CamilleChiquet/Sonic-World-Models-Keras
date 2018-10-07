@@ -49,14 +49,14 @@ create_project_folders()
 	===============================================
 '''
 
-# vae = VAE()
+vae = VAE()
 # /!\ If the memory of your graphic card is too low, you can choose a smaller batch_size
 # print('\nVAE training.')
 # Do one train with Dropout
 # vae.train(filepath=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5', batch_size=16, epochs=200)
 # Then load the trained network but without dropout to push the training a bit further (you need to comment the dropout lines in the VAE.py file)
-# vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
-# vae.train(filepath=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5', batch_size=16, epochs=200)
+vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
+vae.train(filepath=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5', batch_size=16, epochs=200)
 
 '''
 	===============================================
