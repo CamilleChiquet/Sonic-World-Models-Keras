@@ -19,7 +19,6 @@ from models.MDN_LSTM import MDN_LSTM
 from models.VAE import VAE
 from play import play
 from process import create_project_folders
-import neat_sonic
 
 
 create_project_folders()
@@ -53,9 +52,11 @@ create_project_folders()
 # vae = VAE()
 # /!\ If the memory of your graphic card is too low, you can choose a smaller batch_size
 # print('\nVAE training.')
-# vae.train(batch_size=32, epochs=200)
-# vae.save_weights(SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
+# Do one train with Dropout
+# vae.train(filepath=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5', batch_size=16, epochs=200)
+# Then load the trained network but without dropout to push the training a bit further (you need to comment the dropout lines in the VAE.py file)
 # vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
+# vae.train(filepath=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5', batch_size=16, epochs=200)
 
 '''
 	===============================================
@@ -141,3 +142,11 @@ create_project_folders()
 # The LSTM begin from a random latent image
 # latent_image = [np.random.rand(LATENT_DIM)]
 # lstm.play_in_dream(start_image=latent_image, decoder=vae.decoder)
+
+'''
+	===============================================
+	7 - Run neat_sonic.py
+	===============================================
+'''
+
+# Run neat_sonic.py

@@ -1,6 +1,6 @@
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Dense, Input, Conv2D, Flatten, Lambda, Reshape, Conv2DTranspose, BatchNormalization as BN, \
-	Dropout, MaxPooling2D
+	Dropout, MaxPooling2D, ReLU, LeakyReLU
 from keras.models import Model
 from keras.losses import binary_crossentropy
 from keras import backend as K
@@ -27,28 +27,28 @@ class VAE():
 	def _build(self):
 		inputs = Input(shape=IMG_SHAPE, name='encoder_input')
 		# Size of the image given in input : (224, 320, 3)
-		x = Conv2D(filters=32, kernel_size=4, strides=2, kernel_initializer='normal', padding='same',
-				   activation='relu')(inputs)
+		x = Conv2D(filters=32, kernel_size=3, strides=2, kernel_initializer='normal', padding='same')(inputs)
+		x = ReLU(max_value=1000)(x)
 		# x = Dropout(0.25)(x)
 		x = BN()(x)
 		# (112, 160, 32)
-		x = Conv2D(filters=64, kernel_size=4, strides=2, kernel_initializer='normal', padding='same',
-				   activation='relu')(x)
+		x = Conv2D(filters=64, kernel_size=3, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000)(x)
 		# x = Dropout(0.25)(x)
 		x = BN()(x)
 		# (56 80, 64)
-		x = Conv2D(filters=128, kernel_size=4, strides=2, kernel_initializer='normal', padding='same',
-				   activation='relu')(x)
+		x = Conv2D(filters=128, kernel_size=3, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000)(x)
 		# x = Dropout(0.25)(x)
 		x = BN()(x)
 		# (28, 40, 128)
-		x = Conv2D(filters=256, kernel_size=4, strides=2, kernel_initializer='normal', padding='same',
-				   activation='relu')(x)
+		x = Conv2D(filters=256, kernel_size=3, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000)(x)
 		# x = Dropout(0.25)(x)
 		x = BN()(x)
 		# (14, 20, 128)
-		x = Conv2D(filters=512, kernel_size=4, strides=2, kernel_initializer='normal', padding='same',
-				   activation='relu')(x)
+		x = Conv2D(filters=256, kernel_size=3, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000)(x)
 		# x = Dropout(0.5)(x)
 		x = BN()(x)
 		# (7, 10, 128)
@@ -57,11 +57,16 @@ class VAE():
 
 		# generate latent vector Q(z|X)
 		x = Flatten()(x)
-		x = Dense(1024, activation='relu')(x)
+		x = Dense(1024)(x)
+		x = ReLU(max_value=1000)(x)
 		# x = Dropout(0.5)(x)
 		x = BN()(x)
 		z_mean = Dense(LATENT_DIM, name='z_mean')(x)
+		z_mean = ReLU(max_value=1000)(z_mean)
+		z_mean = BN()(z_mean)
 		z_log_var = Dense(LATENT_DIM, name='z_log_var')(x)
+		z_log_var = ReLU(max_value=1000)(z_log_var)
+		z_log_var = BN()(z_log_var)
 
 		# use reparameterization trick to push the sampling out as input
 		# note that "output_shape" isn't necessary with the TensorFlow backend
@@ -73,31 +78,33 @@ class VAE():
 
 		# build decoder model
 		latent_inputs = Input(shape=(LATENT_DIM,), name='z_sampling')
-		x = Dense(shape[1] * shape[2] * shape[3], activation='relu')(latent_inputs)
-		# x = Dropout(0.25)(x)
+		x = Dense(shape[1] * shape[2] * shape[3])(latent_inputs)
+		x = ReLU(max_value=1000)(x)
+		#x = Dropout(0.25)(x)
 		x = BN()(x)
 		x = Reshape((shape[1], shape[2], shape[3]))(x)
 
-		x = Conv2DTranspose(filters=256, kernel_size=5, strides=2, kernel_initializer='normal', padding='same',
-							activation='relu')(x)
-		# x = Dropout(0.25)(x)
+		x = Conv2DTranspose(filters=256, kernel_size=4, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000)(x)
+		#x = Dropout(0.25)(x)
 		x = BN()(x)
 		# (14, 20, 128)
-		x = Conv2DTranspose(filters=128, kernel_size=5, strides=2, kernel_initializer='normal', padding='same',
-							activation='relu')(x)
-		# x = Dropout(0.25)(x)
+		x = Conv2DTranspose(filters=128, kernel_size=4, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000)(x)
+		#x = Dropout(0.25)(x)
 		x = BN()(x)
 		# (28, 40, 64)
-		x = Conv2DTranspose(filters=64, kernel_size=5, strides=2, kernel_initializer='normal', padding='same',
-							activation='relu')(x)
+		x = Conv2DTranspose(filters=64, kernel_size=4, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000, )(x)
 		x = BN()(x)
 		# (56, 80, 64)
-		x = Conv2DTranspose(filters=32, kernel_size=5, strides=2, kernel_initializer='normal', padding='same',
-							activation='relu')(x)
+		x = Conv2DTranspose(filters=32, kernel_size=4, strides=2, kernel_initializer='normal', padding='same')(x)
+		x = ReLU(max_value=1000)(x)
 		x = BN()(x)
 		# (112, 160, 64)
-		outputs = Conv2DTranspose(filters=3, kernel_size=5, strides=2, kernel_initializer='normal', padding='same',
+		x = Conv2DTranspose(filters=3, kernel_size=4, strides=2, kernel_initializer='normal', padding='same',
 								  activation='sigmoid')(x)
+		outputs = BN()(x)
 		# (224, 320, 3)
 		# instantiate decoder model
 		decoder = Model(latent_inputs, outputs, name='decoder')
@@ -127,7 +134,7 @@ class VAE():
 	def load_weights(self, file_path):
 		self.vae.load_weights(filepath=file_path)
 
-	def train(self, epochs=100, batch_size=32, validation_split=0.2):
+	def train(self, filepath, epochs=100, batch_size=32, validation_split=0.2):
 		training_data = None
 
 		# We load all the numpy arrays created by the user for the VAE
@@ -144,7 +151,8 @@ class VAE():
 
 		# If the network didn't improve during the last 5 epochs, we stop the training.
 		earlyStop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=5, verbose=2)
-		callbacks_list = [earlyStop]
+		checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=2, save_best_only=True, mode='min')
+		callbacks_list = [earlyStop, checkpoint]
 
 		self.vae.fit(training_data, epochs=epochs, batch_size=batch_size, verbose=2, callbacks=callbacks_list,
 					 validation_split=validation_split, shuffle=True)

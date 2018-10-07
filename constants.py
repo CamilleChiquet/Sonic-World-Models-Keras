@@ -28,7 +28,9 @@ SAVED_MODELS_DIR = './saved_models'
 # LEVELS = ['GreenHillZone.Act1', 'GreenHillZone.Act2', 'SpringYardZone.Act1', 'SpringYardZone.Act2']
 # LEVELS_END = [9450, 7950, 9000, 10500]
 LEVELS = ['GreenHillZone.Act1', 'GreenHillZone.Act2']
+# LEVELS = ['GreenHillZone.Act1']
 LEVELS_END = [9450, 7950]
+# LEVELS_END = [9450]
 
 
 class Actions:

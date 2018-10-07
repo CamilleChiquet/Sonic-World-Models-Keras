@@ -46,11 +46,8 @@ REWARD_THRESHOLD = compute_fitness(levels_distances, number_steps_to_beat)
 print('fitness threshold : ' + str(REWARD_THRESHOLD))
 
 def run_net_in_env(env, session, graph, encoder, net, render=False):
-	observation = env.reset()
-	with session.as_default():
-		with graph.as_default():
-			latent_vector = encoder.predict(np.array([observation]))[0]
-
+	env.reset()
+	latent_vector = np.zeros(LATENT_DIM)
 	# The final score of the network (not necessary the best)
 	cumulative_reward = 0.0
 	# The network's best score
@@ -115,22 +112,29 @@ def run_net_in_env(env, session, graph, encoder, net, render=False):
 			steps_without_progress = 0
 		else:
 			steps_without_progress += 1
-
 	return best_score
 
 class PopulationEvaluator(object):
 	def __init__(self):
+		# Loading autoencoder
 		vae = VAE()
 		vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
+		# We only use the encoder part
 		self.encoder = vae.encoder
+		# We need to initialize the network for multithreading
+		# Check here for more info : https://stackoverflow.com/questions/46725323/keras-tensorflow-exception-while-predicting-from-multiple-threads
 		rand_image = np.random.rand(1, 224, 320, 3)
-		self.encoder.predict(rand_image)  # warmup
+		self.encoder.predict(rand_image)
 		self.session = K.get_session()
 		self.graph = tf.get_default_graph()
 		self.graph.finalize()
+
+		# For multithreading, evalutations of networks will be added in this queue
 		self.queue = Queue()
-		self.finished_runs = 0
+		# Indicates if the threads that perform fitness evaluation have been created or not
 		self.workers_created = False
+
+		self.finished_runs = 0
 
 	# Evaluates the fitness of one network
 	def eval_net(self):
@@ -160,7 +164,7 @@ class PopulationEvaluator(object):
 		nets = []
 		for gid, g in genomes:
 			nets.append((g, neat.nn.FeedForwardNetwork.create(g, config)))
-			g.fitness = []
+			g.fitness = 0
 
 		print("network creation time {0}".format(time.time() - t0))
 		t0 = time.time()
@@ -218,25 +222,19 @@ def run_neat(checkpoint=None):
 	popEvaluator = PopulationEvaluator()
 	while 1:
 		try:
-			pop.run(popEvaluator.evaluate_genomes, 1)
+			solved = False
+			total_score = 0
+
+			# 'run' returns the best genome
+			best_genome = pop.run(popEvaluator.evaluate_genomes, 1)
 
 			visualize.plot_stats(stats, ylog=False, view=False, filename=NEAT_DIR + "/fitness.svg")
 
-			mfs = sum(stats.get_fitness_mean()[-5:]) / 5.0
-			print("Average mean fitness over last 5 generations: {0}".format(mfs))
-
-			mfs = sum(stats.get_fitness_stat(min)[-5:]) / 5.0
-			print("Average min fitness over last 5 generations: {0}".format(mfs))
-
-			# Use the best genome seen so far as an ensemble-ish control system.
-			best_genome = stats.best_unique_genomes(1)[0]
+			# Contructs the network of the best genome
 			best_network = neat.nn.FeedForwardNetwork.create(best_genome, config)
 
-			solved = False
-			total_score = 0
 			for env in envs:
-				best_score = run_net_in_env(env, popEvaluator.session, popEvaluator.graph, popEvaluator.encoder, best_network, render=True)
-				total_score += best_score
+				total_score += run_net_in_env(env, popEvaluator.session, popEvaluator.graph, popEvaluator.encoder, best_network, render=True)
 
 			visualize.draw_net(config, best_genome, view=False, filename=NEAT_DIR + "/gen-" +str(pop.generation) + "-net", show_disabled=False)
 
