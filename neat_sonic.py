@@ -40,10 +40,11 @@ NB_THREADS = 8
 
 score_range = []
 
-def compute_fitness(distance, step):
-	if step < 10:
-		return distance
-	return distance / math.log10(step)
+def compute_fitness(distance, step, done=False):
+	score = distance
+	if done:
+		score += MAX_STEPS - step
+	return score
 
 # I played to the 2 levels and it took me about 35s and 38s to finish them
 number_steps_to_beat = 35*60 + 38*60
@@ -296,6 +297,6 @@ def run_network(file_name, record=False):
 		run_net_in_env(env, session, graph, encoder, best_network, render=True)
 
 if __name__ == '__main__':
-	# run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-131')
+	run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-127')
 	# run_neat()
-	run_network(NEAT_DIR + '/winner-1st-level-39s.pickle', record=NEAT_DIR)
+	# run_network(NEAT_DIR + '/winner-1st-level-39s.pickle', record=NEAT_DIR)
