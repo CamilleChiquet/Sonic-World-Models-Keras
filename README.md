@@ -4,7 +4,7 @@ AI composed of 3 neural networks : a Variational Auto-Encoder, a LSTM and a cont
 An evolutionary algorithm (NEAT) is used to "train" the controller.
 For more information about world models architecture, go take a look [here](https://worldmodels.github.io/).
 
-Follow the procedure described in the procedure.py file.
+Follow the procedure described in the [procedure.py](https://github.com/CamilleChiquet/Sonic-World-Models-Keras/blob/master/procedure.py) file.
 
 ## Before beginning
 
