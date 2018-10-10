@@ -1,3 +1,5 @@
+import time
+
 import pyglet
 import sys
 import numpy as np
@@ -149,3 +151,21 @@ def play(game='SonicTheHedgehog-Genesis', state='GreenHillZone.Act1', scenario='
 		clock.tick()
 
 	pyglet.app.platform_event_loop.stop()
+
+def play_back(bk2_file):
+	movie = retro.Movie(bk2_file)
+	movie.step()
+
+	env = retro.make(game=movie.get_game(), use_restricted_actions=retro.ACTIONS_ALL)
+	env.initial_state = movie.get_state()
+	env.reset()
+
+	while movie.step():
+		keys = []
+		for i in range(env.NUM_BUTTONS):
+			keys.append(movie.get_key(i))
+		env.step(keys)
+		env.render()
+		time.sleep(1/60)
+
+# play_back(NEAT_DIR + '/SonicTheHedgehog-Genesis-GreenHillZone-000000.bk2')

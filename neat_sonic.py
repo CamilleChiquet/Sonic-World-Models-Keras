@@ -266,11 +266,11 @@ def run_neat(checkpoint=None):
 
 	env.close()
 
-def run_network(file_name):
+def run_network(file_name, record=False):
 	envs = []
 	for level in LEVELS:
 		envs.append(retrowrapper.RetroWrapper(game='SonicTheHedgehog-Genesis', state=level,
-									use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario'))
+									use_restricted_actions=retro.ACTIONS_ALL, scenario='scenario', record=record))
 
 	vae = VAE()
 	vae.load_weights(file_path=SAVED_MODELS_DIR + '/VAE_GreenHillZone.h5')
@@ -297,5 +297,5 @@ def run_network(file_name):
 
 if __name__ == '__main__':
 	# run_neat(checkpoint=NEAT_DIR + '/neat-checkpoint-131')
-	run_neat()
-	# run_network(NEAT_DIR + '/winner.pickle')
+	# run_neat()
+	run_network(NEAT_DIR + '/winner-1st-level-39s.pickle', record=NEAT_DIR)
