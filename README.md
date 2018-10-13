@@ -23,6 +23,7 @@ I only used this AI on the first Sonic game ("SonicTheHedgehog-Genesis").
 - VAE
 - generate data for LSTM
 - LSTM
+- NEAT with VAE (no LSTM)
 
 ## To try
 
